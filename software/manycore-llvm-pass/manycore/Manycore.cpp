@@ -70,12 +70,12 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
     bool isVol;
     unsigned value_elem_size;
     if (isStore) {
-        errs() << "Replace Store begin\n";
+        //errs() << "Replace Store begin\n";
         ptr_op = cast<StoreInst>(op)->getPointerOperand();
         val_op = cast<StoreInst>(op)->getValueOperand();
         value_elem_size = val_op->getType()->getPrimitiveSizeInBits() / 8;
     } else {
-        errs() << "Replace load begin\n";
+        //errs() << "Replace load begin\n";
         ptr_op = cast<LoadInst>(op)->getPointerOperand();
         isVol = cast<LoadInst>(op)->isVolatile();
         value_elem_size = cast<LoadInst>(op)->getType()->getPrimitiveSizeInBits() / 8;
@@ -107,7 +107,7 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
         }
     }
     if (mem_op_fn == NULL) {
-        errs() << "MemOp\n";
+        //errs() << "MemOp\n";
         throw functionNotFoundException;
     }
 
@@ -134,9 +134,9 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
 
     new_mem_op->dump();
     if (isStore) {
-        errs() << "Replace store done\n\n";
+        //errs() << "Replace store done\n\n";
     } else {
-        errs() << "Replace load done\n\n";
+        //errs() << "Replace load done\n\n";
     }
 }
 
@@ -144,7 +144,7 @@ void replace_mem_op(Module &M, Instruction *op, bool isStore) {
 void replace_extern_memcpy(Module &M, CallInst *op, bool isStore) {
     IRBuilder<> builder(op);
     Function *memcpy_fn;
-    errs() << "Replacing memcpy\n";
+    //errs() << "Replacing memcpy\n";
     op->dump();
     if (isStore) {
         memcpy_fn = M.getFunction("extern_store_memcpy");
@@ -170,12 +170,12 @@ void replace_extern_memcpy(Module &M, CallInst *op, bool isStore) {
     Value *new_memcpy = builder.CreateCall(memcpy_fn, args);
     op->replaceAllUsesWith(new_memcpy);
     new_memcpy->dump();
-    errs() << "Memcpy replace done\n\n";
+    //errs() << "Memcpy replace done\n\n";
 }
 
 void replace_extern_memset(Module &M, CallInst *op) {
     IRBuilder<> builder(op);
-    errs() << "Replacing memset\n";
+    //errs() << "Replacing memset\n";
     Function *memset_fn = M.getFunction("extern_memset");
     op->dump();
     Type *char_ptr = Type::getInt8PtrTy(M.getContext(), 0);
@@ -202,7 +202,7 @@ void replace_extern_memset(Module &M, CallInst *op) {
     Value *new_memset = builder.CreateCall(memset_fn, args);
     op->replaceAllUsesWith(new_memset);
     new_memset->dump();
-    errs() << "Memset replace done\n\n";
+    //errs() << "Memset replace done\n\n";
 
 }
 
@@ -316,7 +316,7 @@ namespace {
             args_vector.push_back(ConstantInt::get(int32, elem_size, false));
 
             ArrayRef<Value *> args = ArrayRef<Value *>(args_vector);
-            errs() << "Loading initializer\n";
+            //errs() << "Loading initializer\n";
             builder.CreateCall(load_fn, args)->dump();
         }
 

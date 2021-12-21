@@ -19,6 +19,7 @@ all: main.run
 
 
 KERNEL_NAME ?=kernel_vec_add
+MLIRGEN_NAME ?= kernel_vec_add_single_tile
 
 OBJECT_FILES=main.o kernel_vec_add.o
 
@@ -26,7 +27,9 @@ include ../../Makefile.include
 
 
 main.riscv: $(LINK_SCRIPT) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) $(BSG_MANYCORE_LIB) ../../common/crt.o
-	$(RISCV_LINK) $(OBJECT_FILES) $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
+	cp $(MLIRGEN_NAME).mlirgen $(MLIRGEN_NAME).ll.pass
+	$(MAKE) $(MLIRGEN_NAME).o
+	$(RISCV_LINK) $(OBJECT_FILES) $(MLIRGEN_NAME).o $(SPMD_COMMON_OBJECTS) -L. "-l:$(BSG_MANYCORE_LIB)" -o $@ $(RISCV_LINK_OPTS)
 
 
 main.o: Makefile
