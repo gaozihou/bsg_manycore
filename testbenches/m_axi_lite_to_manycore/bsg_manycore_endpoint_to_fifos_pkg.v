@@ -32,7 +32,7 @@
   } bsg_manycore_packet_payload_aligned_u; \
 \
   typedef struct packed { \
-    logic [fifo_width_mp-addr_width_mp-3*8-data_width_mp-2*y_cord_width_mp-2*x_cord_width_mp-1:0] padding   ; \
+    logic [fifo_width_mp-addr_width_mp-2*8-data_width_mp-2*y_cord_width_mp-2*x_cord_width_mp-1:0] padding   ; \
     logic [  addr_width_mp-1:0] addr      ; \
     logic [              8-1:0] op_v2     ; \
     logic [              8-1:0] reg_id    ; \

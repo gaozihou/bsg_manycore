@@ -57,6 +57,11 @@ module bsg_nonsynth_manycore_testbench
     , parameter axi_addr_width_p = "inv"
     , parameter axi_data_width_p = "inv"
     , parameter axi_burst_len_p  = "inv"
+    , parameter axi_sel_width_p = 4
+    , parameter dma_addr_width_p = axi_addr_width_p - axi_sel_width_p
+
+    , parameter axil_addr_width_p = 32
+    , parameter axil_data_width_p = 32
 
     , parameter cache_bank_addr_width_lp = `BSG_SAFE_CLOG2(bsg_dram_size_p/(2*num_tiles_x_p*num_vcache_rows_p)*4) // byte addr
     , parameter link_sif_width_lp =
@@ -73,6 +78,27 @@ module bsg_nonsynth_manycore_testbench
     , input reset_i
 
     , output tag_done_o
+
+    ,input pcie_clk_i
+    ,input pcie_reset_i
+
+    ,input                               io_axi_lite_awvalid
+    ,input  [ axil_addr_width_p-1:0]     io_axi_lite_awaddr
+    ,output                              io_axi_lite_awready
+    ,input                               io_axi_lite_wvalid
+    ,input  [ axil_data_width_p-1:0]     io_axi_lite_wdata
+    ,input  [(axil_data_width_p>>3)-1:0] io_axi_lite_wstrb
+    ,output                              io_axi_lite_wready
+    ,output [ 1:0]                       io_axi_lite_bresp
+    ,output                              io_axi_lite_bvalid
+    ,input                               io_axi_lite_bready
+    ,input  [ axil_addr_width_p-1:0]     io_axi_lite_araddr
+    ,input                               io_axi_lite_arvalid
+    ,output                              io_axi_lite_arready
+    ,output [ axil_data_width_p-1:0]     io_axi_lite_rdata
+    ,output [ 1:0]                       io_axi_lite_rresp
+    ,output                              io_axi_lite_rvalid
+    ,input                               io_axi_lite_rready
 
     , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*axi_addr_width_p-1:0]mem_axi_araddr
     , output [2*num_pods_y_p*2*num_vcache_rows_p*wh_ruche_factor_p*2-1:0]mem_axi_arburst
@@ -289,28 +315,101 @@ module bsg_nonsynth_manycore_testbench
 
 
   // Host link connection
+/*
+  mc_stream_host
+ #(.addr_width_p  (addr_width_p)
+  ,.data_width_p  (data_width_p)
+  ,.x_cord_width_p(x_cord_width_p)
+  ,.y_cord_width_p(y_cord_width_p)
+  ,.io_x_cord_p   (host_x_cord_p)
+  ,.io_y_cord_p   (host_y_cord_p)
+  ,.stream_addr_width_p(32)
+  ,.stream_data_width_p(32)
+  ) io
+  (.clk_i         (clk_i)
+  ,.reset_i       (reset_r)
+  ,.loader_done_o ()
+  ,.io_link_sif_i (io_link_sif_lo[0][P])
+  ,.io_link_sif_o (io_link_sif_li[0][P])
 
-  // SPMD LOADER
-  logic print_stat_v;
-  logic [data_width_p-1:0] print_stat_tag;
-  bsg_nonsynth_manycore_io_complex #(
-    .addr_width_p(addr_width_p)
-    ,.data_width_p(data_width_p)
-    ,.x_cord_width_p(x_cord_width_p)
-    ,.y_cord_width_p(y_cord_width_p)
-    ,.io_x_cord_p(host_x_cord_p)
-    ,.io_y_cord_p(host_y_cord_p)
-  ) io (
-    .clk_i(clk_i)
-    ,.reset_i(reset_r)
-    ,.io_link_sif_i(io_link_sif_lo[0][P])
-    ,.io_link_sif_o(io_link_sif_li[0][P])
-    ,.print_stat_v_o(print_stat_v)
-    ,.print_stat_tag_o(print_stat_tag)
-    ,.loader_done_o()
+  ,.stream_v_i    (stream_v_i)
+  ,.stream_addr_i (stream_addr_i)
+  ,.stream_data_i (stream_data_i)
+  ,.stream_yumi_o (stream_yumi_o)
+
+  ,.stream_v_o    (stream_v_o)
+  ,.stream_data_o (stream_data_o)
+  ,.stream_ready_i(stream_ready_i)
+  );
+*/
+
+   localparam core_cycle_ctr_width_lp = 64;
+   logic [core_cycle_ctr_width_lp-1:0] core_cycle_ctr_lo;
+
+   bsg_cycle_counter
+     #(.width_p(core_cycle_ctr_width_lp))
+   core_cc
+     (.clk_i(pcie_clk_i)
+      ,.reset_i(pcie_reset_i)
+      ,.ctr_r_o(core_cycle_ctr_lo)
+      );
+
+  bsg_manycore_link_sif_s io_pcie_link_sif_li, io_pcie_link_sif_lo;
+
+  bsg_manycore_link_to_axil #(
+    .x_cord_width_p     (x_cord_width_p)
+    ,.y_cord_width_p     (y_cord_width_p)
+    ,.addr_width_p       (addr_width_p)
+    ,.data_width_p       (data_width_p)
+    ,.host_io_pkt_width_p(128)
+    ,.host_io_pkts_tx_p  (32)
+    ,.host_io_pkts_rx_p  (32)
+    ,.cycle_width_p(core_cycle_ctr_width_lp)
+  ) mcl_to_axil (
+    .clk_i           (pcie_clk_i       )
+    ,.reset_i         (pcie_reset_i  )
+    // axil slave interface
+    ,.axil_awvalid_i  (io_axi_lite_awvalid)
+    ,.axil_awaddr_i   (io_axi_lite_awaddr )
+    ,.axil_awready_o  (io_axi_lite_awready)
+    ,.axil_wvalid_i   (io_axi_lite_wvalid )
+    ,.axil_wdata_i    (io_axi_lite_wdata  )
+    ,.axil_wstrb_i    (io_axi_lite_wstrb  )
+    ,.axil_wready_o   (io_axi_lite_wready )
+    ,.axil_bresp_o    (io_axi_lite_bresp  )
+    ,.axil_bvalid_o   (io_axi_lite_bvalid )
+    ,.axil_bready_i   (io_axi_lite_bready )
+    ,.axil_araddr_i   (io_axi_lite_araddr )
+    ,.axil_arvalid_i  (io_axi_lite_arvalid)
+    ,.axil_arready_o  (io_axi_lite_arready)
+    ,.axil_rdata_o    (io_axi_lite_rdata  )
+    ,.axil_rresp_o    (io_axi_lite_rresp  )
+    ,.axil_rvalid_o   (io_axi_lite_rvalid )
+    ,.axil_rready_i   (io_axi_lite_rready )
+    // manycore link
+    ,.link_sif_i (io_pcie_link_sif_li)
+    ,.link_sif_o (io_pcie_link_sif_lo)
+    ,.global_x_i          ((x_cord_width_p)'(host_x_cord_p)     )
+    ,.global_y_i          ((y_cord_width_p)'(host_y_cord_p)     )
+    ,.cycle_ctr_i       (core_cycle_ctr_lo)
   );
 
-
+  bsg_manycore_link_sif_async_buffer
+ #(.addr_width_p   ( addr_width_p )
+  ,.data_width_p   ( data_width_p )
+  ,.x_cord_width_p ( x_cord_width_p )
+  ,.y_cord_width_p ( y_cord_width_p )
+  ,.fifo_els_p     ( 8 )
+  ) axil_fifo
+  (.L_clk_i        ( pcie_clk_i )
+  ,.L_reset_i      ( pcie_reset_i )
+  ,.L_link_sif_i   ( io_pcie_link_sif_lo )
+  ,.L_link_sif_o   ( io_pcie_link_sif_li )
+  ,.R_clk_i        ( clk_i )
+  ,.R_reset_i      ( reset_r )
+  ,.R_link_sif_i   ( io_link_sif_lo[0][P] )
+  ,.R_link_sif_o   ( io_link_sif_li[0][P] )
+  );
 
 
   //                              //
@@ -322,8 +421,6 @@ module bsg_nonsynth_manycore_testbench
     localparam longint unsigned mem_size_lp = (2**30)*num_pods_x_p/wh_ruche_factor_p/num_vcache_rows_p/2;
     localparam num_vcaches_per_test_mem_lp = (num_tiles_x_p*num_pods_x_p)/wh_ruche_factor_p/2;
 
-    parameter axi_sel_width_p = 4;
-    parameter dma_addr_width_p = axi_addr_width_p - axi_sel_width_p;
     localparam lg_mem_size_lp = `BSG_SAFE_CLOG2(mem_size_lp);
     localparam lg_num_vcaches_lp = `BSG_SAFE_CLOG2(num_vcaches_per_test_mem_lp);
     localparam lg_wh_ruche_factor_lp = `BSG_SAFE_CLOG2(wh_ruche_factor_p);
