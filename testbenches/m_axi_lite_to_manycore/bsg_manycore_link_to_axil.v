@@ -168,8 +168,7 @@ module bsg_manycore_link_to_axil
    // axil read data paths
    // -----------------------
 
-   logic [credit_counter_width_lp-1:0] ep_out_credits_lo, ep_out_credits_used_lo;
-   assign ep_out_credits_lo = (credit_counter_width_lp)'(bsg_machine_io_ep_credits_gp) - ep_out_credits_used_lo;
+   logic [credit_counter_width_lp-1:0] ep_out_credits_used_lo;
 
    // 1. mc response
    logic [axil_data_width_lp-1:0]            tx_rdata_lo;
@@ -233,7 +232,7 @@ module bsg_manycore_link_to_axil
       if (axil_arvalid_i) begin
          if (is_read_credit) begin  // always accept and return the manycore endpoint out credits
             arready_lo = 1'b1;
-            rdata_n = axil_data_width_lp'(ep_out_credits_lo);
+            rdata_n = axil_data_width_lp'(ep_out_credits_used_lo);
          end
          else if (is_read_rdr_rsp) begin
             tx_rready_li = 1'b1;
