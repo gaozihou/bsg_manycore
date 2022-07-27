@@ -59,7 +59,7 @@ module bsg_manycore_link_to_axil_tester
   assign io_axi_lite_rready = 1'b1;
 
   initial begin
-    $readmemh("../../../testbenches/m_axi_lite_to_manycore/bsg_manycore_link_to_axil_tester.nbf", nbf);
+    $readmemh("../../../testbenches/m_axi_lite_to_manycore/bsg_manycore_link_to_axil_tester.rom", nbf);
   end
 
   wire is_read   = (curr_nbf.opcode == 4'h0);
