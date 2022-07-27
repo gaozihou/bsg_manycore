@@ -320,6 +320,10 @@ module bsg_manycore_link_to_axil
    logic                           host_req_v_lo;
    logic                           host_req_ready_li;
 
+   logic [host_io_pkt_width_p-1:0] ep_req_li;
+   logic                           ep_req_v_li;
+   logic                           ep_req_ready_lo;
+
    // host <---credit--- mc
    logic [host_io_pkt_width_p-1:0] mc_rsp_li;
    logic                           mc_rsp_v_li;
@@ -431,9 +435,9 @@ module bsg_manycore_link_to_axil
       .mc_req_v_o      (mc_req_v_li),
       .mc_req_ready_i  (mc_req_ready_lo),
 
-      .endpoint_req_i      (host_req_lo),
-      .endpoint_req_v_i    (host_req_v_lo),
-      .endpoint_req_ready_o(host_req_ready_li),
+      .endpoint_req_i      (ep_req_li),
+      .endpoint_req_v_i    (ep_req_v_li),
+      .endpoint_req_ready_o(ep_req_ready_lo),
 
       .mc_rsp_o        (mc_rsp_li),
       .mc_rsp_v_o      (mc_rsp_v_li),
@@ -450,5 +454,9 @@ module bsg_manycore_link_to_axil
       .global_y_i          (global_y_i),
       .out_credits_used_o   (ep_out_credits_used_lo)
       );
+
+  assign ep_req_li = host_req_lo;
+  assign ep_req_v_li = host_req_v_lo & (ep_out_credits_used_lo < bsg_machine_io_ep_credits_gp);
+  assign host_req_ready_li = ep_req_ready_lo & (ep_out_credits_used_lo < bsg_machine_io_ep_credits_gp);
 
 endmodule
