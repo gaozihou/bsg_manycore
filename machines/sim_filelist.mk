@@ -91,5 +91,6 @@ VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_bladerunn
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_manycore_endpoint_to_fifos.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_mcl_axil_fifos_master.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_mcl_axil_fifos_slave.v
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_manycore_link_resp_credit_to_ready_and_handshake.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_manycore_link_to_axil.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_manycore_link_to_axil_tester.v

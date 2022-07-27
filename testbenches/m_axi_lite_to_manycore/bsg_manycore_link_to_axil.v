@@ -387,6 +387,26 @@ module bsg_manycore_link_to_axil
    // See reference below for how to attach modules to the manycore endpoint:
    // Xie, S, Taylor, M. B. (2018). The BaseJump Manycore Accelerator Network. arXiv:1808.00650.
 
+   logic [link_sif_width_lp-1:0] link_sif_credit_li;
+   logic [link_sif_width_lp-1:0] link_sif_credit_lo;
+
+   bsg_manycore_link_resp_credit_to_ready_and_handshake
+    #(.addr_width_p(addr_width_p)
+      ,.data_width_p(data_width_p)
+      ,.x_cord_width_p(x_cord_width_p)
+      ,.y_cord_width_p(y_cord_width_p)
+      )
+    rev_c2r
+     (.clk_i(clk_i)
+      ,.reset_i(reset_i)
+
+      ,.credit_link_sif_i(link_sif_credit_lo)
+      ,.credit_link_sif_o(link_sif_credit_li)
+
+      ,.ready_and_link_sif_i(link_sif_i)
+      ,.ready_and_link_sif_o(link_sif_o)
+      );
+
    // --------------------------------------------
    // fifo to manycore endpoint standard
    // --------------------------------------------
@@ -425,8 +445,8 @@ module bsg_manycore_link_to_axil
       .endpoint_rsp_ready_o(),
 
       // manycore link
-      .link_sif_i      (link_sif_i),
-      .link_sif_o      (link_sif_o),
+      .link_sif_i      (link_sif_credit_li),
+      .link_sif_o      (link_sif_credit_lo),
       .global_x_i          (global_x_i),
       .global_y_i          (global_y_i),
       .out_credits_used_o   (ep_out_credits_used_lo)
