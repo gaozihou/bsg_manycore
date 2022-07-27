@@ -193,7 +193,7 @@ module spmd_testbench();
   bsg_nonsynth_reset_gen #(
     .num_clocks_p(1)
     ,.reset_cycles_lo_p(0)
-    ,.reset_cycles_hi_p(16)
+    ,.reset_cycles_hi_p(16*5)
   ) pcie_reset_gen (
     .clk_i(pcie_clk)
     ,.async_reset_o(pcie_reset)
@@ -219,12 +219,30 @@ module spmd_testbench();
   wire [3:0]m_axi_lite_wstrb;
   wire m_axi_lite_wvalid;
 
-  // temporary stub
-  assign m_axi_lite_arvalid = 1'b0;
-  assign m_axi_lite_awvalid = 1'b0;
-  assign m_axi_lite_wvalid  = 1'b0;
-  assign m_axi_lite_rready  = 1'b1;
-  assign m_axi_lite_bready  = 1'b1;
+  wire pcie_en;
+
+  bsg_manycore_link_to_axil_tester axil_tester
+  (.pcie_clk_i  (pcie_clk)
+  ,.pcie_reset_i(pcie_reset)
+  ,.pcie_en_i   (pcie_en)
+  ,.io_axi_lite_awvalid(m_axi_lite_awvalid)
+  ,.io_axi_lite_awaddr (m_axi_lite_awaddr )
+  ,.io_axi_lite_awready(m_axi_lite_awready)
+  ,.io_axi_lite_wvalid (m_axi_lite_wvalid )
+  ,.io_axi_lite_wdata  (m_axi_lite_wdata  )
+  ,.io_axi_lite_wstrb  (m_axi_lite_wstrb  )
+  ,.io_axi_lite_wready (m_axi_lite_wready )
+  ,.io_axi_lite_bresp  (m_axi_lite_bresp  )
+  ,.io_axi_lite_bvalid (m_axi_lite_bvalid )
+  ,.io_axi_lite_bready (m_axi_lite_bready )
+  ,.io_axi_lite_araddr (m_axi_lite_araddr )
+  ,.io_axi_lite_arvalid(m_axi_lite_arvalid)
+  ,.io_axi_lite_arready(m_axi_lite_arready)
+  ,.io_axi_lite_rdata  (m_axi_lite_rdata  )
+  ,.io_axi_lite_rresp  (m_axi_lite_rresp  )
+  ,.io_axi_lite_rvalid (m_axi_lite_rvalid )
+  ,.io_axi_lite_rready (m_axi_lite_rready )
+  );
 
 
 
@@ -366,7 +384,16 @@ module spmd_testbench();
     ,.data_o(reset_r)
   );
 
-
+  bsg_launch_sync_sync
+ #(.width_p     (1)
+  ) pcie_en_blss
+  (.iclk_i      (core_clk)
+  ,.iclk_reset_i(1'b0)
+  ,.oclk_i      (pcie_clk)
+  ,.iclk_data_i (~reset_r)
+  ,.iclk_data_o ()
+  ,.oclk_data_o (pcie_en)
+  );
 
 
   // reset dff

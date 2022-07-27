@@ -84,6 +84,7 @@ VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_tx.v
 VSOURCES += $(BASEJUMP_STL_DIR)/bsg_cache/bsg_cache_to_axi_rx.v
 
+VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_sif_async_buffer.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_manycore_endpoint_to_fifos_pkg.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_manycore_link_to_axil_pkg.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_bladerunner_configuration.v
@@ -91,4 +92,4 @@ VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_manycore_
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_mcl_axil_fifos_master.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_mcl_axil_fifos_slave.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_manycore_link_to_axil.v
-VSOURCES += $(BSG_MANYCORE_DIR)/v/bsg_manycore_link_sif_async_buffer.v
+VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_manycore_link_to_axil_tester.v
