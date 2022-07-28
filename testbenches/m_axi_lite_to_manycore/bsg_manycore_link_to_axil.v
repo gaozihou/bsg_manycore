@@ -115,177 +115,213 @@ module bsg_manycore_link_to_axil
    // axil write data path
    // -----------------------
 
-   // host request
-   logic [axil_data_width_lp-1:0] tx_wdata_li;
-   logic                          tx_wen_li;
-   logic                          tx_wready_lo;
+  logic awvalid_li, awyumi_lo;
+  logic [axil_addr_width_lp-1:0] awaddr_li;
+  logic wvalid_li, wyumi_lo;
+  logic [axil_data_width_lp-1:0] wdata_li;
+  logic bvalid_lo, bready_li;
 
-   logic                          awready_lo;
-   logic                          wready_lo;
-   logic                          bvalid_r, bvalid_n;
-   logic [1:0]                    bresp_lo;
+  bsg_two_fifo
+ #(.width_p(axil_addr_width_lp)
+  ) aw_twofer
+  (.clk_i  (clk_i)
+  ,.reset_i(reset_i)
+  ,.v_i    (axil_awvalid_i)
+  ,.data_i (axil_awaddr_i)
+  ,.ready_o(axil_awready_o)
+  ,.v_o    (awvalid_li)
+  ,.data_o (awaddr_li)
+  ,.yumi_i (awyumi_lo)
+  );
 
-   assign axil_awready_o = awready_lo;
-   assign axil_wready_o  = wready_lo;
-   assign axil_bvalid_o  = bvalid_r;
-   assign axil_bresp_o   = bresp_lo;
+  bsg_two_fifo
+ #(.width_p(axil_data_width_lp)
+  ) w_twofer
+  (.clk_i  (clk_i)
+  ,.reset_i(reset_i)
+  ,.v_i    (axil_wvalid_i)
+  ,.data_i (axil_wdata_i)
+  ,.ready_o(axil_wready_o)
+  ,.v_o    (wvalid_li)
+  ,.data_o (wdata_li)
+  ,.yumi_i (wyumi_lo)
+  );
 
-   wire is_write_to_tdr = (axil_awaddr_i == mcl_fifo_base_addr_gp + mcl_ofs_tdr_gp);
+  bsg_two_fifo
+ #(.width_p(1)
+  ) b_twofer
+  (.clk_i  (clk_i)
+  ,.reset_i(reset_i)
+  ,.v_i    (bvalid_lo)
+  ,.data_i (1'b0)
+  ,.ready_o(bready_li)
+  ,.v_o    (axil_bvalid_o)
+  ,.data_o ()
+  ,.yumi_i (axil_bvalid_o & axil_bready_i)
+  );
+  assign axil_bresp_o = axil_resp_OKAY_gp;
 
-   always_comb begin
-      awready_lo = 1'b0;
-      wready_lo  = 1'b1;
+  // host request
+  logic [axil_data_width_lp-1:0] tx_axil_req_li;
+  logic                          tx_axil_req_v_li;
+  logic                          tx_axil_req_ready_lo;
 
-      tx_wen_li   = 1'b0;
-      tx_wdata_li = '0;
+  wire is_write_to_tdr = (awaddr_li == mcl_fifo_base_addr_gp + mcl_ofs_tdr_gp);
 
-      bvalid_n = bvalid_r;
-      bresp_lo = axil_resp_OKAY_gp; // always OKAY even writing to the undefined address
+  assign wyumi_lo  = awyumi_lo;
+  assign bvalid_lo = awyumi_lo;
 
-      if (axil_awvalid_i & axil_wvalid_i) begin
-         wready_lo = is_write_to_tdr ? tx_wready_lo : 1'b1;
-         awready_lo = wready_lo;
-
-         tx_wen_li   = is_write_to_tdr;
-         tx_wdata_li = axil_wdata_i;
-      end
-
-      // write response occurs after
-      if (axil_bready_i & axil_bvalid_o)
-        bvalid_n = 1'b0;
-      else
-        bvalid_n = axil_wready_o & axil_wvalid_i;
+  always_comb
+  begin
+   awyumi_lo = 1'b0;
+   tx_axil_req_v_li = 1'b0;
+   tx_axil_req_li = '0;
+   if (awvalid_li & wvalid_li & bready_li)
+     begin
+       if (is_write_to_tdr)
+         begin
+           tx_axil_req_v_li = 1'b1;
+           awyumi_lo = tx_axil_req_ready_lo;
+           tx_axil_req_li = wdata_li;
+         end
+       else
+         begin
+           awyumi_lo = 1'b1;
+         end
+     end
    end
 
-   always_ff @(posedge clk_i) begin
-      if (reset_i)
-        bvalid_r <= 1'b0;
-      else
-        bvalid_r <= bvalid_n;
-   end
 
+  // axil read data paths
+  // -----------------------
 
-   // axil read data paths
-   // -----------------------
+  logic arvalid_li, aryumi_lo;
+  logic [axil_addr_width_lp-1:0] araddr_li;
+  logic rvalid_lo, rready_li;
+  logic [axil_data_width_lp-1:0] rdata_lo;
 
-   logic [credit_counter_width_lp-1:0] ep_out_credits_used_lo;
+  bsg_two_fifo
+ #(.width_p(axil_addr_width_lp)
+  ) ar_twofer
+  (.clk_i  (clk_i)
+  ,.reset_i(reset_i)
+  ,.v_i    (axil_arvalid_i)
+  ,.data_i (axil_araddr_i)
+  ,.ready_o(axil_arready_o)
+  ,.v_o    (arvalid_li)
+  ,.data_o (araddr_li)
+  ,.yumi_i (aryumi_lo)
+  );
 
-   // 1. mc response
-   logic [axil_data_width_lp-1:0]            tx_rdata_lo;
-   logic                                     tx_rv_lo;
-   logic                                     tx_rready_li;
+  bsg_two_fifo
+ #(.width_p(axil_data_width_lp)
+  ) r_twofer
+  (.clk_i  (clk_i)
+  ,.reset_i(reset_i)
+  ,.v_i    (rvalid_lo)
+  ,.data_i (rdata_lo)
+  ,.ready_o(rready_li)
+  ,.v_o    (axil_rvalid_o)
+  ,.data_o (axil_rdata_o)
+  ,.yumi_i (axil_rvalid_o & axil_rready_i)
+  );
+  assign axil_rresp_o = axil_resp_OKAY_gp;
 
-   // 2. credit registers
+  // 1. tx response
+  logic [axil_data_width_lp-1:0]            tx_axil_rsp_lo;
+  logic                                     tx_axil_rsp_v_lo;
+  logic                                     tx_axil_rsp_ready_li;
 
-   // host credit
-   localparam host_io_capacity_width_lp = `BSG_WIDTH((host_io_pkt_width_p/axil_data_width_lp)*host_io_pkts_tx_p);
-   logic [host_io_capacity_width_lp-1:0]     host_credits_lo;
+  // 2. credit registers
+  localparam ratio_lp = host_io_pkt_width_p/axil_data_width_lp;
+  localparam tx_req_width_lp = `BSG_WIDTH(ratio_lp*host_io_pkts_tx_p);
+  localparam rx_req_width_lp = `BSG_WIDTH(ratio_lp*host_io_pkts_rx_p);
 
-   // rx fifo occupancy for manycore request
-   localparam integer                        piso_els_lp = host_io_pkt_width_p/axil_data_width_lp;
-   localparam pkt_cnt_width_lp = `BSG_WIDTH(host_io_pkts_tx_p*piso_els_lp);
-   logic [pkt_cnt_width_lp-1:0]              mc_req_words_lo;
+  logic [tx_req_width_lp-1:0] tx_req_credits_lo;
+  logic [rx_req_width_lp-1:0] rx_req_credits_lo;
+  logic [credit_counter_width_lp-1:0] ep_out_credits_used_lo;
 
-   // 3. mc request
-   logic [axil_data_width_lp-1:0]            rx_rdata_lo;
-   logic                                     rx_rv_lo;
-   logic                                     rx_rready_li;
+  // 3. tx request
+  logic [axil_data_width_lp-1:0]            rx_axil_req_lo;
+  logic                                     rx_axil_req_v_lo;
+  logic                                     rx_axil_req_ready_li;
 
-   // 4. rom
-   logic [axil_addr_width_lp-1:0]            rx_rom_addr_li;
-   logic [axil_data_width_lp-1:0]            rx_rom_data_lo;
+  // 4. rom
+  logic [axil_addr_width_lp-1:0]            rx_rom_addr_li;
+  logic [axil_data_width_lp-1:0]            rx_rom_data_lo;
 
+  wire is_read_counter_low   = (araddr_li == mcl_ofs_counter_low_gp);
+  wire is_read_counter_high  = (araddr_li == mcl_ofs_counter_high_gp);
+  wire is_read_credit        = (araddr_li == mcl_ofs_credits_gp);
+  wire is_read_rdr_rsp       = (araddr_li == mcl_fifo_base_addr_gp + mcl_ofs_rdr_rsp_gp);
+  wire is_read_tdfv_host_req = (araddr_li == mcl_fifo_base_addr_gp + mcl_ofs_tdfv_req_gp);
+  wire is_read_rdfo_mc_req   = (araddr_li == mcl_fifo_base_addr_gp + mcl_ofs_rdfo_req_gp);
+  wire is_read_rdr_req       = (araddr_li == mcl_fifo_base_addr_gp + mcl_ofs_rdr_req_gp);
+  wire is_read_rom           = (araddr_li >= mcl_rom_base_addr_gp) &&
+       (araddr_li < mcl_rom_base_addr_gp + (1<<$clog2(bsg_machine_rom_els_gp*bsg_machine_rom_width_gp/8)));
 
-   logic                                     arready_lo;
-   logic [axil_data_width_lp-1:0]            rdata_r, rdata_n;
-   logic                                     rvalid_r, rvalid_n;
-   logic [                  1:0]             rresp_lo;
+  assign rvalid_lo = aryumi_lo;
 
-   assign axil_arready_o = arready_lo;
-   assign axil_rdata_o   = rdata_r;
-   assign axil_rvalid_o  = rvalid_r;
-   assign axil_rresp_o   = rresp_lo;
-
-   wire is_read_counter_low = (axil_araddr_i == mcl_ofs_counter_low_gp);
-   wire is_read_counter_high = (axil_araddr_i == mcl_ofs_counter_high_gp);
-   wire is_read_credit        = (axil_araddr_i == mcl_ofs_credits_gp);
-   wire is_read_rdr_rsp       = (axil_araddr_i == mcl_fifo_base_addr_gp + mcl_ofs_rdr_rsp_gp);
-   wire is_read_tdfv_host_req = (axil_araddr_i == mcl_fifo_base_addr_gp + mcl_ofs_tdfv_req_gp);
-   wire is_read_rdfo_mc_req   = (axil_araddr_i == mcl_fifo_base_addr_gp + mcl_ofs_rdfo_req_gp);
-   wire is_read_rdr_req       = (axil_araddr_i == mcl_fifo_base_addr_gp + mcl_ofs_rdr_req_gp);
-   wire is_read_rom           = (axil_araddr_i >= mcl_rom_base_addr_gp) &&
-        (axil_araddr_i < mcl_rom_base_addr_gp + (1<<$clog2(bsg_machine_rom_els_gp*bsg_machine_rom_width_gp/8)));
-
-   always_comb begin
-
-      arready_lo = 1'b0;
-      rdata_n = rdata_r;
-      rvalid_n = rvalid_r;
-
-      rresp_lo = axil_resp_OKAY_gp; // always OKAY even reading from the undefined address
-
-      // ready from data paths to read
-      tx_rready_li = 1'b0;
-      rx_rready_li = 1'b0;
-      rx_rom_addr_li = '0;
-
-      if (axil_arvalid_i) begin
-         if (is_read_credit) begin  // always accept and return the manycore endpoint out credits
-            arready_lo = 1'b1;
-            rdata_n = axil_data_width_lp'(ep_out_credits_used_lo);
-         end
-         else if (is_read_rdr_rsp) begin
-            tx_rready_li = 1'b1;
-            arready_lo = tx_rready_li & tx_rv_lo;  // accept the read address only when fifo data is valid
-            rdata_n = tx_rdata_lo;
-         end
-         else if (is_read_tdfv_host_req) begin  // always accept and return the vacancy of host req fifo in words
-            arready_lo = 1'b1;
-            rdata_n = axil_data_width_lp'(host_credits_lo);
-         end
-         else if (is_read_rdfo_mc_req) begin  // always accept and return the occupancy of rx words
-            arready_lo = 1'b1;
-            rdata_n = axil_data_width_lp'(mc_req_words_lo);
-         end
-         else if (is_read_rdr_req) begin
-            rx_rready_li = 1'b1;
-            arready_lo = rx_rready_li & rx_rv_lo;  // accept the read address only when fifo data is valid
-            rdata_n = rx_rdata_lo;
-         end
-         else if (is_read_rom) begin
-            arready_lo = 1'b1;
-            rx_rom_addr_li = (axil_araddr_i - mcl_rom_base_addr_gp);
-            rdata_n = axil_data_width_lp'(rx_rom_data_lo);
-         end
-         else if (is_read_counter_low) begin
-            arready_lo = 1'b1;
-            rdata_n = cycle_ctr_i[axil_data_width_lp-1:0];
-         end
-         else if (is_read_counter_high) begin
-            arready_lo = 1'b1;
-            rdata_n = cycle_ctr_i[axil_data_width_lp +: axil_data_width_lp];
-         end
-         else begin
-            arready_lo = 1'b1;
-            rdata_n = axil_data_width_lp'(32'hdead_beef);
-         end
-         // assert the rdata valid after it decides to accept the address, which
-         // also means rx fifo being dequeued or the rom being read
-         rvalid_n = axil_arready_o & axil_arvalid_i;
+  always_comb
+  begin
+    aryumi_lo = 1'b0;
+    rdata_lo = '0;
+    tx_axil_rsp_ready_li = 1'b0;
+    rx_axil_req_ready_li = 1'b0;
+    rx_rom_addr_li = '0;
+    if (arvalid_li & rready_li)
+      begin
+        if (is_read_credit)
+          begin  // always accept and return the manycore endpoint out credits
+            aryumi_lo = 1'b1;
+            rdata_lo = axil_data_width_lp'(ep_out_credits_used_lo);
+          end
+        else if (is_read_rdr_rsp)
+          begin  // accept the read address only when fifo data is valid
+            tx_axil_rsp_ready_li = 1'b1;
+            aryumi_lo = tx_axil_rsp_v_lo;
+            rdata_lo = tx_axil_rsp_lo;
+          end
+        else if (is_read_tdfv_host_req)
+          begin  // always accept and return the vacancy of host req fifo in words
+            aryumi_lo = 1'b1;
+            rdata_lo = axil_data_width_lp'(tx_req_credits_lo);
+          end
+        else if (is_read_rdfo_mc_req)
+          begin  // always accept and return the occupancy of rx words
+            aryumi_lo = 1'b1;
+            rdata_lo = axil_data_width_lp'(rx_req_credits_lo);
+          end
+        else if (is_read_rdr_req)
+          begin  // accept the read address only when fifo data is valid
+            rx_axil_req_ready_li = 1'b1;
+            aryumi_lo = rx_axil_req_v_lo;
+            rdata_lo = rx_axil_req_lo;
+          end
+        else if (is_read_rom)
+          begin
+            aryumi_lo = 1'b1;
+            rdata_lo = axil_data_width_lp'(rx_rom_data_lo);
+            rx_rom_addr_li = (araddr_li - mcl_rom_base_addr_gp);
+          end
+        else if (is_read_counter_low)
+          begin
+            aryumi_lo = 1'b1;
+            rdata_lo = cycle_ctr_i[axil_data_width_lp-1:0];
+          end
+        else if (is_read_counter_high)
+          begin
+            aryumi_lo = 1'b1;
+            rdata_lo = cycle_ctr_i[axil_data_width_lp+: axil_data_width_lp];
+          end
+        else
+          begin
+            aryumi_lo = 1'b1;
+            rdata_lo = axil_data_width_lp'(32'hdead_beef);
+          end
       end
-   end
+  end
 
-   // hold the rdata and rvalid until accepted by master
-   always_ff @(posedge clk_i) begin
-      if (reset_i | (axil_rready_i & axil_rvalid_o)) begin
-         rdata_r <= '0;
-         rvalid_r <= 1'b0;
-      end
-      else begin
-         rdata_r <= rdata_n;
-         rvalid_r <= rvalid_n;
-      end
-   end
 
    // ----------------------------
    // bladerunner rom
@@ -316,23 +352,23 @@ module bsg_manycore_link_to_axil
    // --------------------------------------------
 
    // host ---packet---> mc
-   logic [host_io_pkt_width_p-1:0] host_req_lo;
-   logic                           host_req_v_lo;
-   logic                           host_req_ready_li;
+   logic [host_io_pkt_width_p-1:0] tx_fifo_req_lo;
+   logic                           tx_fifo_req_v_lo;
+   logic                           tx_fifo_req_ready_li;
 
-   logic [host_io_pkt_width_p-1:0] ep_req_li;
-   logic                           ep_req_v_li;
-   logic                           ep_req_ready_lo;
+   logic [host_io_pkt_width_p-1:0] tx_ep_req_li;
+   logic                           tx_ep_req_v_li;
+   logic                           tx_ep_req_ready_lo;
 
    // host <---credit--- mc
-   logic [host_io_pkt_width_p-1:0] mc_rsp_li;
-   logic                           mc_rsp_v_li;
-   logic                           mc_rsp_ready_lo;
+   logic [host_io_pkt_width_p-1:0] tx_fifo_rsp_li;
+   logic                           tx_fifo_rsp_v_li;
+   logic                           tx_fifo_rsp_ready_lo;
 
    // mc ---packet---> host
-   logic [host_io_pkt_width_p-1:0] mc_req_li;
-   logic                           mc_req_v_li;
-   logic                           mc_req_ready_lo;
+   logic [host_io_pkt_width_p-1:0] rx_fifo_req_li;
+   logic                           rx_fifo_req_v_li;
+   logic                           rx_fifo_req_ready_lo;
 
    bsg_mcl_axil_fifos_master 
   #(.x_cord_width_p   (x_cord_width_p)
@@ -347,19 +383,19 @@ module bsg_manycore_link_to_axil
    (.clk_i            (clk_i)
    ,.reset_i          (reset_i)
 
-   ,.axil_req_i       (tx_wdata_li)
-   ,.axil_req_v_i     (tx_wen_li)
-   ,.axil_req_ready_o (tx_wready_lo)
-   ,.axil_rsp_o       (tx_rdata_lo)
-   ,.axil_rsp_v_o     (tx_rv_lo)
-   ,.axil_rsp_ready_i (tx_rready_li)
-   ,.fifo_req_o       (host_req_lo)
-   ,.fifo_req_v_o     (host_req_v_lo)
-   ,.fifo_req_ready_i (host_req_ready_li)
-   ,.req_credits_o    (host_credits_lo)
-   ,.fifo_rsp_i       (mc_rsp_li)
-   ,.fifo_rsp_v_i     (mc_rsp_v_li)
-   ,.fifo_rsp_ready_o (mc_rsp_ready_lo)
+   ,.axil_req_i       (tx_axil_req_li)
+   ,.axil_req_v_i     (tx_axil_req_v_li)
+   ,.axil_req_ready_o (tx_axil_req_ready_lo)
+   ,.axil_rsp_o       (tx_axil_rsp_lo)
+   ,.axil_rsp_v_o     (tx_axil_rsp_v_lo)
+   ,.axil_rsp_ready_i (tx_axil_rsp_ready_li)
+   ,.fifo_req_o       (tx_fifo_req_lo)
+   ,.fifo_req_v_o     (tx_fifo_req_v_lo)
+   ,.fifo_req_ready_i (tx_fifo_req_ready_li)
+   ,.fifo_rsp_i       (tx_fifo_rsp_li)
+   ,.fifo_rsp_v_i     (tx_fifo_rsp_v_li)
+   ,.fifo_rsp_ready_o (tx_fifo_rsp_ready_lo)
+   ,.req_credits_o    (tx_req_credits_lo)
    );
 
    bsg_mcl_axil_fifos_slave 
@@ -370,13 +406,13 @@ module bsg_manycore_link_to_axil
    (.clk_i            (clk_i)
    ,.reset_i          (reset_i)
 
-   ,.axil_req_o       (rx_rdata_lo)
-   ,.axil_req_v_o     (rx_rv_lo)
-   ,.axil_req_ready_i (rx_rready_li)
-   ,.fifo_req_i       (mc_req_li)
-   ,.fifo_req_v_i     (mc_req_v_li)
-   ,.fifo_req_ready_o (mc_req_ready_lo)
-   ,.req_credits_o    (mc_req_words_lo)
+   ,.axil_req_o       (rx_axil_req_lo)
+   ,.axil_req_v_o     (rx_axil_req_v_lo)
+   ,.axil_req_ready_i (rx_axil_req_ready_li)
+   ,.fifo_req_i       (rx_fifo_req_li)
+   ,.fifo_req_v_i     (rx_fifo_req_v_li)
+   ,.fifo_req_ready_o (rx_fifo_req_ready_lo)
+   ,.req_credits_o    (rx_req_credits_lo)
    );
 
    // See reference below for how to attach modules to the manycore endpoint:
@@ -423,17 +459,17 @@ module bsg_manycore_link_to_axil
       .reset_i         (reset_i),
 
       // fifo interface
-      .mc_req_o        (mc_req_li),
-      .mc_req_v_o      (mc_req_v_li),
-      .mc_req_ready_i  (mc_req_ready_lo),
+      .mc_req_o        (rx_fifo_req_li),
+      .mc_req_v_o      (rx_fifo_req_v_li),
+      .mc_req_ready_i  (rx_fifo_req_ready_lo),
 
-      .endpoint_req_i      (ep_req_li),
-      .endpoint_req_v_i    (ep_req_v_li),
-      .endpoint_req_ready_o(ep_req_ready_lo),
+      .endpoint_req_i      (tx_ep_req_li),
+      .endpoint_req_v_i    (tx_ep_req_v_li),
+      .endpoint_req_ready_o(tx_ep_req_ready_lo),
 
-      .mc_rsp_o        (mc_rsp_li),
-      .mc_rsp_v_o      (mc_rsp_v_li),
-      .mc_rsp_ready_i  (mc_rsp_ready_lo),
+      .mc_rsp_o        (tx_fifo_rsp_li),
+      .mc_rsp_v_o      (tx_fifo_rsp_v_li),
+      .mc_rsp_ready_i  (tx_fifo_rsp_ready_lo),
 
       .endpoint_rsp_i      ('0),
       .endpoint_rsp_v_i    (1'b0),
@@ -447,8 +483,8 @@ module bsg_manycore_link_to_axil
       .out_credits_used_o   (ep_out_credits_used_lo)
       );
 
-  assign ep_req_li = host_req_lo;
-  assign ep_req_v_li = host_req_v_lo & (ep_out_credits_used_lo < bsg_machine_io_ep_credits_gp);
-  assign host_req_ready_li = ep_req_ready_lo & (ep_out_credits_used_lo < bsg_machine_io_ep_credits_gp);
+  assign tx_ep_req_li = tx_fifo_req_lo;
+  assign tx_ep_req_v_li = tx_fifo_req_v_lo & (ep_out_credits_used_lo < bsg_machine_io_ep_credits_gp);
+  assign tx_fifo_req_ready_li = tx_ep_req_ready_lo & (ep_out_credits_used_lo < bsg_machine_io_ep_credits_gp);
 
 endmodule
