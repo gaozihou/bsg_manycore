@@ -10,7 +10,7 @@ module bsg_mcl_axil_fifos_rx
 
  #(parameter fifo_width_p = "inv"
   ,parameter req_credits_p = "inv"
-  ,parameter axil_data_width_p = 32
+  ,parameter axil_data_width_p = "inv"
 
   ,localparam ratio_lp = fifo_width_p/axil_data_width_p
   ,localparam req_credits_width_lp = `BSG_WIDTH(ratio_lp*req_credits_p)
