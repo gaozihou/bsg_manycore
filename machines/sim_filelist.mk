@@ -94,3 +94,5 @@ VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_mcl_axil_
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_manycore_link_resp_credit_to_ready_and_handshake.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_manycore_link_to_axil.v
 VSOURCES += $(BSG_MANYCORE_DIR)/testbenches/m_axi_lite_to_manycore/bsg_manycore_link_to_axil_tester.v
+
+VSOURCES += $(BASEJUMP_STL_DIR)/bsg_dataflow/bsg_flow_counter.v

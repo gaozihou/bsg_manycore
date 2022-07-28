@@ -335,57 +335,49 @@ module bsg_manycore_link_to_axil
    logic                           mc_req_ready_lo;
 
    bsg_mcl_axil_fifos_master 
-     #(
-       .host_io_pkt_width_p(host_io_pkt_width_p),
-       .host_credits_p(host_io_pkts_tx_p),
-       .axil_data_width_p(axil_data_width_lp)
-       ,.x_cord_width_p(x_cord_width_p)
-       ,.y_cord_width_p(y_cord_width_p)
-       ,.addr_width_p  (addr_width_p)
-       ,.data_width_p  (data_width_p)
-       ) 
-   tx 
-     (
-      .clk_i           (clk_i),
-      .reset_i         (reset_i),
+  #(.x_cord_width_p   (x_cord_width_p)
+   ,.y_cord_width_p   (y_cord_width_p)
+   ,.addr_width_p     (addr_width_p)
+   ,.data_width_p     (data_width_p)
+   ,.fifo_width_p     (host_io_pkt_width_p)
+   ,.req_credits_p    (host_io_pkts_tx_p)
+   ,.read_credits_p   (host_io_pkts_tx_p)
+   ,.axil_data_width_p(axil_data_width_lp)
+   ) tx
+   (.clk_i            (clk_i)
+   ,.reset_i          (reset_i)
 
-      // monitor signals
-      .w_data_i        (tx_wdata_li),
-      .w_v_i           (tx_wen_li),
-      .w_ready_o       (tx_wready_lo),
-      .r_data_o        (tx_rdata_lo),
-      .r_v_o           (tx_rv_lo),
-      .r_ready_i       (tx_rready_li),
-      .host_req_o      (host_req_lo),
-      .host_req_v_o    (host_req_v_lo),
-      .host_req_ready_i(host_req_ready_li),
-      .host_credits_o  (host_credits_lo),
-      .mc_rsp_i        (mc_rsp_li),
-      .mc_rsp_v_i      (mc_rsp_v_li),
-      .mc_rsp_ready_o  (mc_rsp_ready_lo)
-      );
-
+   ,.axil_req_i       (tx_wdata_li)
+   ,.axil_req_v_i     (tx_wen_li)
+   ,.axil_req_ready_o (tx_wready_lo)
+   ,.axil_rsp_o       (tx_rdata_lo)
+   ,.axil_rsp_v_o     (tx_rv_lo)
+   ,.axil_rsp_ready_i (tx_rready_li)
+   ,.fifo_req_o       (host_req_lo)
+   ,.fifo_req_v_o     (host_req_v_lo)
+   ,.fifo_req_ready_i (host_req_ready_li)
+   ,.req_credits_o    (host_credits_lo)
+   ,.fifo_rsp_i       (mc_rsp_li)
+   ,.fifo_rsp_v_i     (mc_rsp_v_li)
+   ,.fifo_rsp_ready_o (mc_rsp_ready_lo)
+   );
 
    bsg_mcl_axil_fifos_slave 
-     #(
-       .host_io_pkt_width_p(host_io_pkt_width_p),
-       .mc_write_capacity_p(host_io_pkts_rx_p),
-       .axil_data_width_p(axil_data_width_lp)
-       ) 
-   rx
-     (
-      .clk_i         (clk_i),
-      .reset_i       (reset_i),
+  #(.fifo_width_p     (host_io_pkt_width_p)
+   ,.req_credits_p    (host_io_pkts_rx_p)
+   ,.axil_data_width_p(axil_data_width_lp)
+   ) rx
+   (.clk_i            (clk_i)
+   ,.reset_i          (reset_i)
 
-      // monitor signals
-      .r_data_o      (rx_rdata_lo),
-      .r_v_o         (rx_rv_lo),
-      .r_ready_i     (rx_rready_li),
-      .mc_req_i      (mc_req_li),
-      .mc_req_v_i    (mc_req_v_li),
-      .mc_req_ready_o(mc_req_ready_lo),
-      .mc_req_words_o(mc_req_words_lo)
-      );
+   ,.axil_req_o       (rx_rdata_lo)
+   ,.axil_req_v_o     (rx_rv_lo)
+   ,.axil_req_ready_i (rx_rready_li)
+   ,.fifo_req_i       (mc_req_li)
+   ,.fifo_req_v_i     (mc_req_v_li)
+   ,.fifo_req_ready_o (mc_req_ready_lo)
+   ,.req_credits_o    (mc_req_words_lo)
+   );
 
    // See reference below for how to attach modules to the manycore endpoint:
    // Xie, S, Taylor, M. B. (2018). The BaseJump Manycore Accelerator Network. arXiv:1808.00650.
