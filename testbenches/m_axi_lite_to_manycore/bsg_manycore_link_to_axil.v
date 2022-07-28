@@ -370,7 +370,7 @@ module bsg_manycore_link_to_axil
    logic                           rx_fifo_req_v_li;
    logic                           rx_fifo_req_ready_lo;
 
-   bsg_mcl_axil_fifos_master 
+   bsg_mcl_axil_fifos_tx
   #(.x_cord_width_p   (x_cord_width_p)
    ,.y_cord_width_p   (y_cord_width_p)
    ,.addr_width_p     (addr_width_p)
@@ -398,7 +398,7 @@ module bsg_manycore_link_to_axil
    ,.req_credits_o    (tx_req_credits_lo)
    );
 
-   bsg_mcl_axil_fifos_slave 
+   bsg_mcl_axil_fifos_rx
   #(.fifo_width_p     (host_io_pkt_width_p)
    ,.req_credits_p    (host_io_pkts_rx_p)
    ,.axil_data_width_p(axil_data_width_lp)

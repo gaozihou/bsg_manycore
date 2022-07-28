@@ -1,12 +1,12 @@
 
 /*
- *  bsg_mcl_axil_fifos_slave.v
+ *  bsg_mcl_axil_fifos_rx.v
  *
  */
 
 `include "bsg_defines.v"
 
-module bsg_mcl_axil_fifos_slave
+module bsg_mcl_axil_fifos_rx
 
  #(parameter fifo_width_p = "inv"
   ,parameter req_credits_p = "inv"
