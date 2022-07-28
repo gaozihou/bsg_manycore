@@ -73,13 +73,4 @@ module bsg_manycore_link_to_axil_rx
   ,.count_o     (req_credits_o)
   );
 
-  // synopsys translate_off
-  initial
-  begin
-    assert (ratio_lp * axil_data_width_p == host_fifo_width_gp)
-    else
-        $fatal("[BSG_ERROR][%m]: fifo width %d is not multiple of axil data width %d", host_fifo_width_gp, axil_data_width_p);
-  end
-  // synopsys translate_on
-
 endmodule
