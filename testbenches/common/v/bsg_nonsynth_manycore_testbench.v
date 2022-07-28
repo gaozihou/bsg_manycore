@@ -361,9 +361,8 @@ module bsg_nonsynth_manycore_testbench
     ,.y_cord_width_p     (y_cord_width_p)
     ,.addr_width_p       (addr_width_p)
     ,.data_width_p       (data_width_p)
-    ,.host_io_pkt_width_p(128)
-    ,.host_io_pkts_tx_p  (32)
-    ,.host_io_pkts_rx_p  (32)
+    ,.axil_addr_width_p(axil_addr_width_p)
+    ,.axil_data_width_p(axil_data_width_p)
     ,.cycle_width_p(core_cycle_ctr_width_lp)
   ) mcl_to_axil (
     .clk_i           (pcie_clk_i       )

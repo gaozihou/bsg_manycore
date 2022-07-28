@@ -47,82 +47,63 @@
  */
 
 module bsg_manycore_link_to_axil
+
   import bsg_manycore_pkg::*;
-   import bsg_manycore_link_to_axil_pkg::*;
-   #(
-     // Width of the host packets
-     parameter host_io_pkt_width_p = "inv"
-     // Number of packet entries in the host TRANSMIT FIFO
-     , parameter host_io_pkts_tx_p = "inv"
-     // Number of packet entries in the host RECEIVE FIFO
-     , parameter host_io_pkts_rx_p = "inv"
-     // AXI-Lite parameters
-     , localparam axil_data_width_lp = axil_data_width_gp
-     , localparam axil_addr_width_lp = axil_addr_width_gp
-     // endpoint params
-     , parameter x_cord_width_p = "inv"
-     , parameter y_cord_width_p = "inv"
-     , parameter addr_width_p = "inv"
-     , parameter data_width_p = "inv"
-     , parameter cycle_width_p = "inv"
-     , localparam credit_counter_width_lp = `BSG_WIDTH(bsg_machine_io_ep_credits_gp)
-     , localparam ep_fifo_els_lp = 4
-     , localparam rev_fifo_els_lp = 3
-     , localparam link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
-     ) 
-   (
-    input clk_i
-    ,input reset_i
-    // axil signals
-    ,input axil_awvalid_i
-    ,input [ axil_addr_width_lp-1:0] axil_awaddr_i
-    ,output axil_awready_o
-    ,input axil_wvalid_i
-    ,input [ axil_data_width_lp-1:0] axil_wdata_i
-    ,input [(axil_data_width_gp>>3)-1:0] axil_wstrb_i // unused
-    ,output axil_wready_o
-    ,output [ 1:0] axil_bresp_o
-    ,output axil_bvalid_o
-    ,input axil_bready_i
-    ,input [ axil_addr_width_lp-1:0] axil_araddr_i
-    ,input axil_arvalid_i
-    ,output axil_arready_o
-    ,output [ axil_data_width_lp-1:0] axil_rdata_o
-    ,output [ 1:0] axil_rresp_o
-    ,output axil_rvalid_o
-    ,input axil_rready_i
-    // manycore link signals
-    ,input [ link_sif_width_lp-1:0] link_sif_i
-    ,output [ link_sif_width_lp-1:0] link_sif_o
-    ,input [ x_cord_width_p-1:0] global_x_i
-    ,input [ y_cord_width_p-1:0] global_y_i
-    // cycle counter
-    ,input [ cycle_width_p-1:0] cycle_ctr_i
-    );
+  import bsg_manycore_link_to_axil_pkg::*;
+
+ #(parameter axil_data_width_p = "inv"
+  ,parameter axil_addr_width_p = "inv"
+  ,parameter x_cord_width_p = "inv"
+  ,parameter y_cord_width_p = "inv"
+  ,parameter addr_width_p = "inv"
+  ,parameter data_width_p = "inv"
+  ,parameter cycle_width_p = "inv"
+
+  ,localparam credit_counter_width_lp = `BSG_WIDTH(bsg_machine_io_ep_credits_gp)
+  ,localparam link_sif_width_lp = `bsg_manycore_link_sif_width(addr_width_p,data_width_p,x_cord_width_p,y_cord_width_p)
+  )
+
+  (input                               clk_i
+  ,input                               reset_i
+  // axil signals
+  ,input                               axil_awvalid_i
+  ,input  [axil_addr_width_p-1:0]      axil_awaddr_i
+  ,output                              axil_awready_o
+  ,input                               axil_wvalid_i
+  ,input  [axil_data_width_p-1:0]      axil_wdata_i
+  ,input  [(axil_data_width_p>>3)-1:0] axil_wstrb_i
+  ,output                              axil_wready_o
+  ,output [1:0]                        axil_bresp_o
+  ,output                              axil_bvalid_o
+  ,input                               axil_bready_i
+  ,input  [axil_addr_width_p-1:0]      axil_araddr_i
+  ,input                               axil_arvalid_i
+  ,output                              axil_arready_o
+  ,output [axil_data_width_p-1:0]      axil_rdata_o
+  ,output [1:0]                        axil_rresp_o
+  ,output                              axil_rvalid_o
+  ,input                               axil_rready_i
+  // manycore link signals
+  ,input  [link_sif_width_lp-1:0]      link_sif_i
+  ,output [link_sif_width_lp-1:0]      link_sif_o
+  ,input  [x_cord_width_p-1:0]         global_x_i
+  ,input  [y_cord_width_p-1:0]         global_y_i
+  // cycle counter
+  ,input  [cycle_width_p-1:0]          cycle_ctr_i
+  );
 
 
-   // Dependencies between channel handshake signals
-   // -------------------------------------------------------
-   // axil write channels
-   // bvalid : must wait for wvalid & wready
-   // bresp: must be signaled only after the write data
-
-   // See details in ARM's DOC:
-   // https://developer.arm.com/docs/ihi0022/d ,A3.3.1
-   // -------------------------------------------------------
-
-
-   // axil write data path
-   // -----------------------
+  // axil write data path
+  // -----------------------
 
   logic awvalid_li, awyumi_lo;
-  logic [axil_addr_width_lp-1:0] awaddr_li;
+  logic [axil_addr_width_p-1:0] awaddr_li;
   logic wvalid_li, wyumi_lo;
-  logic [axil_data_width_lp-1:0] wdata_li;
+  logic [axil_data_width_p-1:0] wdata_li;
   logic bvalid_lo, bready_li;
 
   bsg_two_fifo
- #(.width_p(axil_addr_width_lp)
+ #(.width_p(axil_addr_width_p)
   ) aw_twofer
   (.clk_i  (clk_i)
   ,.reset_i(reset_i)
@@ -135,7 +116,7 @@ module bsg_manycore_link_to_axil
   );
 
   bsg_two_fifo
- #(.width_p(axil_data_width_lp)
+ #(.width_p(axil_data_width_p)
   ) w_twofer
   (.clk_i  (clk_i)
   ,.reset_i(reset_i)
@@ -162,7 +143,7 @@ module bsg_manycore_link_to_axil
   assign axil_bresp_o = axil_resp_OKAY_gp;
 
   // host request
-  logic [axil_data_width_lp-1:0] tx_axil_req_li;
+  logic [axil_data_width_p-1:0] tx_axil_req_li;
   logic                          tx_axil_req_v_li;
   logic                          tx_axil_req_ready_lo;
 
@@ -196,12 +177,12 @@ module bsg_manycore_link_to_axil
   // -----------------------
 
   logic arvalid_li, aryumi_lo;
-  logic [axil_addr_width_lp-1:0] araddr_li;
+  logic [axil_addr_width_p-1:0] araddr_li;
   logic rvalid_lo, rready_li;
-  logic [axil_data_width_lp-1:0] rdata_lo;
+  logic [axil_data_width_p-1:0] rdata_lo;
 
   bsg_two_fifo
- #(.width_p(axil_addr_width_lp)
+ #(.width_p(axil_addr_width_p)
   ) ar_twofer
   (.clk_i  (clk_i)
   ,.reset_i(reset_i)
@@ -214,7 +195,7 @@ module bsg_manycore_link_to_axil
   );
 
   bsg_two_fifo
- #(.width_p(axil_data_width_lp)
+ #(.width_p(axil_data_width_p)
   ) r_twofer
   (.clk_i  (clk_i)
   ,.reset_i(reset_i)
@@ -228,27 +209,27 @@ module bsg_manycore_link_to_axil
   assign axil_rresp_o = axil_resp_OKAY_gp;
 
   // 1. tx response
-  logic [axil_data_width_lp-1:0]            tx_axil_rsp_lo;
+  logic [axil_data_width_p-1:0]            tx_axil_rsp_lo;
   logic                                     tx_axil_rsp_v_lo;
   logic                                     tx_axil_rsp_ready_li;
 
   // 2. credit registers
-  localparam ratio_lp = host_io_pkt_width_p/axil_data_width_lp;
-  localparam tx_req_width_lp = `BSG_WIDTH(ratio_lp*host_io_pkts_tx_p);
-  localparam rx_req_width_lp = `BSG_WIDTH(ratio_lp*host_io_pkts_rx_p);
+  localparam ratio_lp = host_fifo_width_gp/axil_data_width_p;
+  localparam tx_req_width_lp = `BSG_WIDTH(ratio_lp*tx_req_credits_gp);
+  localparam rx_req_width_lp = `BSG_WIDTH(ratio_lp*rx_req_credits_gp);
 
   logic [tx_req_width_lp-1:0] tx_req_credits_lo;
   logic [rx_req_width_lp-1:0] rx_req_credits_lo;
   logic [credit_counter_width_lp-1:0] ep_out_credits_used_lo;
 
   // 3. tx request
-  logic [axil_data_width_lp-1:0]            rx_axil_req_lo;
+  logic [axil_data_width_p-1:0]            rx_axil_req_lo;
   logic                                     rx_axil_req_v_lo;
   logic                                     rx_axil_req_ready_li;
 
   // 4. rom
-  logic [axil_addr_width_lp-1:0]            rx_rom_addr_li;
-  logic [axil_data_width_lp-1:0]            rx_rom_data_lo;
+  logic [axil_addr_width_p-1:0]            rx_rom_addr_li;
+  logic [axil_data_width_p-1:0]            rx_rom_data_lo;
 
   wire is_read_counter_low   = (araddr_li == mcl_ofs_counter_low_gp);
   wire is_read_counter_high  = (araddr_li == mcl_ofs_counter_high_gp);
@@ -274,7 +255,7 @@ module bsg_manycore_link_to_axil
         if (is_read_credit)
           begin  // always accept and return the manycore endpoint out credits
             aryumi_lo = 1'b1;
-            rdata_lo = axil_data_width_lp'(ep_out_credits_used_lo);
+            rdata_lo = axil_data_width_p'(ep_out_credits_used_lo);
           end
         else if (is_read_rdr_rsp)
           begin  // accept the read address only when fifo data is valid
@@ -285,12 +266,12 @@ module bsg_manycore_link_to_axil
         else if (is_read_tdfv_host_req)
           begin  // always accept and return the vacancy of host req fifo in words
             aryumi_lo = 1'b1;
-            rdata_lo = axil_data_width_lp'(tx_req_credits_lo);
+            rdata_lo = axil_data_width_p'(tx_req_credits_lo);
           end
         else if (is_read_rdfo_mc_req)
           begin  // always accept and return the occupancy of rx words
             aryumi_lo = 1'b1;
-            rdata_lo = axil_data_width_lp'(rx_req_credits_lo);
+            rdata_lo = axil_data_width_p'(rx_req_credits_lo);
           end
         else if (is_read_rdr_req)
           begin  // accept the read address only when fifo data is valid
@@ -301,23 +282,23 @@ module bsg_manycore_link_to_axil
         else if (is_read_rom)
           begin
             aryumi_lo = 1'b1;
-            rdata_lo = axil_data_width_lp'(rx_rom_data_lo);
+            rdata_lo = axil_data_width_p'(rx_rom_data_lo);
             rx_rom_addr_li = (araddr_li - mcl_rom_base_addr_gp);
           end
         else if (is_read_counter_low)
           begin
             aryumi_lo = 1'b1;
-            rdata_lo = cycle_ctr_i[axil_data_width_lp-1:0];
+            rdata_lo = cycle_ctr_i[axil_data_width_p-1:0];
           end
         else if (is_read_counter_high)
           begin
             aryumi_lo = 1'b1;
-            rdata_lo = cycle_ctr_i[axil_data_width_lp+: axil_data_width_lp];
+            rdata_lo = cycle_ctr_i[axil_data_width_p+: axil_data_width_p];
           end
         else
           begin
             aryumi_lo = 1'b1;
-            rdata_lo = axil_data_width_lp'(32'hdead_beef);
+            rdata_lo = axil_data_width_p'(32'hdead_beef);
           end
       end
   end
@@ -333,7 +314,7 @@ module bsg_manycore_link_to_axil
 
    logic [bsg_machine_rom_width_gp-1:0]     br_rom_data_lo;
 
-   assign rx_rom_data_lo = axil_data_width_lp'(br_rom_data_lo);
+   assign rx_rom_data_lo = axil_data_width_p'(br_rom_data_lo);
 
    bsg_bladerunner_configuration 
      #(
@@ -352,21 +333,21 @@ module bsg_manycore_link_to_axil
    // --------------------------------------------
 
    // host ---packet---> mc
-   logic [host_io_pkt_width_p-1:0] tx_fifo_req_lo;
+   logic [host_fifo_width_gp-1:0] tx_fifo_req_lo;
    logic                           tx_fifo_req_v_lo;
    logic                           tx_fifo_req_ready_li;
 
-   logic [host_io_pkt_width_p-1:0] tx_ep_req_li;
+   logic [host_fifo_width_gp-1:0] tx_ep_req_li;
    logic                           tx_ep_req_v_li;
    logic                           tx_ep_req_ready_lo;
 
    // host <---credit--- mc
-   logic [host_io_pkt_width_p-1:0] tx_fifo_rsp_li;
+   logic [host_fifo_width_gp-1:0] tx_fifo_rsp_li;
    logic                           tx_fifo_rsp_v_li;
    logic                           tx_fifo_rsp_ready_lo;
 
    // mc ---packet---> host
-   logic [host_io_pkt_width_p-1:0] rx_fifo_req_li;
+   logic [host_fifo_width_gp-1:0] rx_fifo_req_li;
    logic                           rx_fifo_req_v_li;
    logic                           rx_fifo_req_ready_lo;
 
@@ -375,10 +356,7 @@ module bsg_manycore_link_to_axil
    ,.y_cord_width_p   (y_cord_width_p)
    ,.addr_width_p     (addr_width_p)
    ,.data_width_p     (data_width_p)
-   ,.fifo_width_p     (host_io_pkt_width_p)
-   ,.req_credits_p    (host_io_pkts_tx_p)
-   ,.read_credits_p   (host_io_pkts_tx_p)
-   ,.axil_data_width_p(axil_data_width_lp)
+   ,.axil_data_width_p(axil_data_width_p)
    ) tx
    (.clk_i            (clk_i)
    ,.reset_i          (reset_i)
@@ -399,9 +377,7 @@ module bsg_manycore_link_to_axil
    );
 
    bsg_mcl_axil_fifos_rx
-  #(.fifo_width_p     (host_io_pkt_width_p)
-   ,.req_credits_p    (host_io_pkts_rx_p)
-   ,.axil_data_width_p(axil_data_width_lp)
+  #(.axil_data_width_p(axil_data_width_p)
    ) rx
    (.clk_i            (clk_i)
    ,.reset_i          (reset_i)
@@ -444,13 +420,13 @@ module bsg_manycore_link_to_axil
 
    bsg_manycore_endpoint_to_fifos 
      #(
-       .fifo_width_p     (host_io_pkt_width_p),
+       .fifo_width_p     (host_fifo_width_gp),
        .x_cord_width_p   (x_cord_width_p),
        .y_cord_width_p   (y_cord_width_p),
        .addr_width_p     (addr_width_p),
        .data_width_p     (data_width_p),
-       .ep_fifo_els_p    (ep_fifo_els_lp),
-       .rev_fifo_els_p   (rev_fifo_els_lp),
+       .ep_fifo_els_p    (ep_fifo_els_gp),
+       .rev_fifo_els_p   (ep_rev_fifo_els_gp),
        .credit_counter_width_p(credit_counter_width_lp)
        )
    mc_ep_to_fifos

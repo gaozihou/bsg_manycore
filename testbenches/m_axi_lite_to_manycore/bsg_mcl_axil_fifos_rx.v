@@ -8,12 +8,12 @@
 
 module bsg_mcl_axil_fifos_rx
 
- #(parameter fifo_width_p = "inv"
-  ,parameter req_credits_p = "inv"
-  ,parameter axil_data_width_p = "inv"
+  import bsg_manycore_link_to_axil_pkg::*;
 
-  ,localparam ratio_lp = fifo_width_p/axil_data_width_p
-  ,localparam req_credits_width_lp = `BSG_WIDTH(ratio_lp*req_credits_p)
+ #(parameter axil_data_width_p = "inv"
+
+  ,localparam ratio_lp = host_fifo_width_gp/axil_data_width_p
+  ,localparam req_credits_width_lp = `BSG_WIDTH(ratio_lp*rx_req_credits_gp)
   )
 
   (input                          clk_i
@@ -23,7 +23,7 @@ module bsg_mcl_axil_fifos_rx
   ,output                         axil_req_v_o
   ,input                          axil_req_ready_i
 
-  ,input  [fifo_width_p-1:0]      fifo_req_i
+  ,input  [host_fifo_width_gp-1:0]      fifo_req_i
   ,input                          fifo_req_v_i
   ,output                         fifo_req_ready_o
 
@@ -49,7 +49,7 @@ module bsg_mcl_axil_fifos_rx
 
   bsg_fifo_1r1w_small
  #(.width_p(axil_data_width_p)
-  ,.els_p  (ratio_lp*req_credits_p)
+  ,.els_p  (ratio_lp*rx_req_credits_gp)
   ) req_buf
   (.clk_i  (clk_i)
   ,.reset_i(reset_i)
@@ -62,7 +62,7 @@ module bsg_mcl_axil_fifos_rx
   );
 
   bsg_flow_counter
- #(.els_p       (ratio_lp*req_credits_p)
+ #(.els_p       (ratio_lp*rx_req_credits_gp)
   ,.count_free_p(1)
   ) req_cnt
   (.clk_i       (clk_i)
@@ -76,9 +76,9 @@ module bsg_mcl_axil_fifos_rx
   // synopsys translate_off
   initial
   begin
-    assert (ratio_lp * axil_data_width_p == fifo_width_p)
+    assert (ratio_lp * axil_data_width_p == host_fifo_width_gp)
     else
-        $fatal("[BSG_ERROR][%m]: fifo width %d is not multiple of axil data width %d", fifo_width_p, axil_data_width_p);
+        $fatal("[BSG_ERROR][%m]: fifo width %d is not multiple of axil data width %d", host_fifo_width_gp, axil_data_width_p);
   end
   // synopsys translate_on
 

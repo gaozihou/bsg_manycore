@@ -9,14 +9,12 @@
 module bsg_mcl_axil_fifos_tx
 
   import bsg_manycore_pkg::*;
+  import bsg_manycore_link_to_axil_pkg::*;
 
  #(parameter x_cord_width_p    = "inv"
   ,parameter y_cord_width_p    = "inv"
   ,parameter addr_width_p      = "inv"
   ,parameter data_width_p      = "inv"
-  ,parameter fifo_width_p      = "inv"
-  ,parameter req_credits_p     = "inv"
-  ,parameter read_credits_p    = "inv"
   ,parameter axil_data_width_p = "inv"
 
   ,localparam x_cord_width_pad_lp = `BSG_CDIV(x_cord_width_p,8)*8
@@ -24,9 +22,9 @@ module bsg_mcl_axil_fifos_tx
   ,localparam addr_width_pad_lp   = `BSG_CDIV(addr_width_p,8)*8
   ,localparam data_width_pad_lp   = `BSG_CDIV(data_width_p,8)*8
 
-  ,localparam ratio_lp = fifo_width_p/axil_data_width_p
-  ,localparam req_credits_width_lp  = `BSG_WIDTH(ratio_lp*req_credits_p)
-  ,localparam read_credits_width_lp = `BSG_WIDTH(read_credits_p)
+  ,localparam ratio_lp = host_fifo_width_gp/axil_data_width_p
+  ,localparam req_credits_width_lp  = `BSG_WIDTH(ratio_lp*tx_req_credits_gp)
+  ,localparam read_credits_width_lp = `BSG_WIDTH(tx_read_credits_gp)
   )
 
   (input                          clk_i
@@ -40,11 +38,11 @@ module bsg_mcl_axil_fifos_tx
   ,output                         axil_rsp_v_o
   ,input                          axil_rsp_ready_i
 
-  ,output [fifo_width_p-1:0]      fifo_req_o
+  ,output [host_fifo_width_gp-1:0]      fifo_req_o
   ,output                         fifo_req_v_o
   ,input                          fifo_req_ready_i
 
-  ,input  [fifo_width_p-1:0]      fifo_rsp_i
+  ,input  [host_fifo_width_gp-1:0]      fifo_rsp_i
   ,input                          fifo_rsp_v_i
   ,output                         fifo_rsp_ready_o
 
@@ -59,11 +57,11 @@ module bsg_mcl_axil_fifos_tx
   logic [axil_data_width_p-1:0] req_sipo_data_li;
 
   logic req_sipo_v_lo, req_sipo_ready_li;
-  logic [fifo_width_p-1:0] req_sipo_data_lo;
+  logic [host_fifo_width_gp-1:0] req_sipo_data_lo;
 
   bsg_fifo_1r1w_small
  #(.width_p(axil_data_width_p)
-  ,.els_p  (ratio_lp*req_credits_p)
+  ,.els_p  (ratio_lp*tx_req_credits_gp)
   ) req_buf
   (.clk_i  (clk_i)
   ,.reset_i(reset_i)
@@ -112,7 +110,7 @@ module bsg_mcl_axil_fifos_tx
 
   bsg_fifo_1r1w_small
  #(.width_p(axil_data_width_p)
-  ,.els_p  (ratio_lp*read_credits_p)
+  ,.els_p  (ratio_lp*tx_read_credits_gp)
   ) rsp_buf
   (.clk_i  (clk_i)
   ,.reset_i(reset_i)
@@ -131,7 +129,7 @@ module bsg_mcl_axil_fifos_tx
   // Host will read this vacancy and update its request credits
 
   bsg_flow_counter
- #(.els_p       (ratio_lp*req_credits_p)
+ #(.els_p       (ratio_lp*tx_req_credits_gp)
   ,.count_free_p(1)
   ) req_cnt
   (.clk_i       (clk_i)
@@ -146,7 +144,7 @@ module bsg_mcl_axil_fifos_tx
   // 1) endpoint is out of credits (this is implemented outside)
   // 2) this module is out of read credits
 
-  `declare_bsg_manycore_packet_aligned_s(fifo_width_p, addr_width_pad_lp, data_width_pad_lp, x_cord_width_pad_lp, y_cord_width_pad_lp);
+  `declare_bsg_manycore_packet_aligned_s(host_fifo_width_gp, addr_width_pad_lp, data_width_pad_lp, x_cord_width_pad_lp, y_cord_width_pad_lp);
   bsg_manycore_packet_aligned_s req_sipo_data_cast;
   assign req_sipo_data_cast = req_sipo_data_lo;
 
@@ -160,7 +158,7 @@ module bsg_mcl_axil_fifos_tx
   assign req_sipo_ready_li = ~pause_read_req & fifo_req_ready_i;
 
   bsg_flow_counter
- #(.els_p       (read_credits_p)
+ #(.els_p       (tx_read_credits_gp)
   ,.count_free_p(1)
   ) read_cnt
   (.clk_i       (clk_i)
@@ -174,9 +172,9 @@ module bsg_mcl_axil_fifos_tx
   // synopsys translate_off
   initial
   begin
-    assert (ratio_lp * axil_data_width_p == fifo_width_p)
+    assert (ratio_lp * axil_data_width_p == host_fifo_width_gp)
     else
-        $fatal("[BSG_ERROR][%m]: fifo width %d is not multiple of axil data width %d", fifo_width_p, axil_data_width_p);
+        $fatal("[BSG_ERROR][%m]: fifo width %d is not multiple of axil data width %d", host_fifo_width_gp, axil_data_width_p);
   end
   // synopsys translate_on
 
