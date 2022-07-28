@@ -1,12 +1,12 @@
 
 /*
- *  bsg_mcl_axil_fifos_rx.v
+ *  bsg_manycore_link_to_axil_rx.v
  *
  */
 
 `include "bsg_defines.v"
 
-module bsg_mcl_axil_fifos_rx
+module bsg_manycore_link_to_axil_rx
 
   import bsg_manycore_link_to_axil_pkg::*;
 
