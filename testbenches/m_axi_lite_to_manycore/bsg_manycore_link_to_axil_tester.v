@@ -37,7 +37,8 @@ module bsg_manycore_link_to_axil_tester
   } bsg_nbf_s;
 
   typedef enum logic [3:0] {
-    LOAD_NBF
+    RESET
+   ,LOAD_NBF
    ,AR_OCCUPACY
    ,R_OCCUPACY
    ,AR_MC_REQ
@@ -48,6 +49,7 @@ module bsg_manycore_link_to_axil_tester
   logic [nbf_addr_width_lp-1:0] nbf_addr_r, nbf_addr_n;
   logic [31:0] nbf_counter_r, nbf_counter_n;
   nbf_state_e nbf_state_r, nbf_state_n;
+  logic nbf_drain_done_r, nbf_drain_done_n;
 
   bsg_nbf_s curr_nbf;
   assign curr_nbf = nbf[nbf_addr_r];
@@ -71,13 +73,21 @@ module bsg_manycore_link_to_axil_tester
     nbf_addr_n = nbf_addr_r;
     nbf_counter_n = nbf_counter_r;
     nbf_state_n = nbf_state_r;
+    nbf_drain_done_n = nbf_drain_done_r;
     io_axi_lite_arvalid = 1'b0;
     io_axi_lite_awvalid = 1'b0;
     io_axi_lite_wvalid  = 1'b0;
     io_axi_lite_araddr  = curr_nbf.addr;
-    if (nbf_state_r == LOAD_NBF)
+    if (nbf_state_r == RESET)
       begin
-        nbf_counter_n = nbf_counter_r + pcie_en_i;
+        if (pcie_en_i)
+          begin
+            nbf_state_n = AR_OCCUPACY;
+          end
+      end
+    else if (nbf_state_r == LOAD_NBF)
+      begin
+        nbf_counter_n = nbf_counter_r + 1'b1;
         if (nbf_counter_r == 127)
           begin
             nbf_counter_n = 0;
@@ -119,7 +129,15 @@ module bsg_manycore_link_to_axil_tester
       begin
         if (nbf_counter_r == 0)
           begin
-            nbf_state_n = AR_OCCUPACY;
+            if (nbf_drain_done_r == 1'b1)
+              begin
+                nbf_state_n = AR_OCCUPACY;
+              end
+            else
+              begin
+                nbf_drain_done_n = 1'b1;
+                nbf_state_n = LOAD_NBF;
+              end
           end
         else
           begin
@@ -137,7 +155,7 @@ module bsg_manycore_link_to_axil_tester
             nbf_state_n = AR_MC_REQ;
             if (io_axi_lite_rdata[16+:16] == 16'h3AB4)
               begin
-                $finish;
+                if (nbf_drain_done_r == 1'b1) $finish;
               end
           end
       end
@@ -149,13 +167,15 @@ module bsg_manycore_link_to_axil_tester
       begin
         nbf_addr_r <= '0;
         nbf_counter_r <= '0;
-        nbf_state_r <= LOAD_NBF;
+        nbf_state_r <= RESET;
+        nbf_drain_done_r <= '0;
       end
     else
       begin
         nbf_addr_r <= nbf_addr_n;
         nbf_counter_r <= nbf_counter_n;
         nbf_state_r <= nbf_state_n;
+        nbf_drain_done_r <= nbf_drain_done_n;
       end
   end
 
