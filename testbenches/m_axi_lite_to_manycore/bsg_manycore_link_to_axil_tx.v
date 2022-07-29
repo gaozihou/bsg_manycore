@@ -119,7 +119,7 @@ module bsg_manycore_link_to_axil_tx
   ,.ready_and_o(rsp_piso_ready_lo)
   ,.valid_o    (axil_rsp_v_o)
   ,.data_o     (axil_rsp_o)
-  ,.yumi_i     (axil_rsp_ready_i)
+  ,.yumi_i     (axil_rsp_v_o & axil_rsp_ready_i)
   );
 
   // --------------------------------------------------------
