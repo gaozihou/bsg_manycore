@@ -91,8 +91,22 @@ module bsg_manycore_link_to_axil_tx
   //                          rsp
   // --------------------------------------------------------
 
-  logic rsp_piso_v_lo, rsp_piso_ready_li;
-  logic [axil_data_width_p-1:0] rsp_piso_data_lo;
+  logic rsp_piso_v_li, rsp_piso_ready_lo;
+  logic [host_fifo_width_gp-1:0] rsp_piso_data_li;
+
+  bsg_fifo_1r1w_small
+ #(.width_p(host_fifo_width_gp)
+  ,.els_p  (tx_read_credits_gp)
+  ) rsp_buf
+  (.clk_i  (clk_i)
+  ,.reset_i(reset_i)
+  ,.v_i    (fifo_rsp_v_i)
+  ,.data_i (fifo_rsp_i)
+  ,.ready_o(fifo_rsp_ready_o)
+  ,.v_o    (rsp_piso_v_li)
+  ,.data_o (rsp_piso_data_li)
+  ,.yumi_i (rsp_piso_v_li & rsp_piso_ready_lo)
+  );
 
   bsg_parallel_in_serial_out
  #(.width_p    (axil_data_width_p)
@@ -100,26 +114,12 @@ module bsg_manycore_link_to_axil_tx
   ) rsp_piso
   (.clk_i      (clk_i)
   ,.reset_i    (reset_i)
-  ,.valid_i    (fifo_rsp_v_i)
-  ,.data_i     (fifo_rsp_i)
-  ,.ready_and_o(fifo_rsp_ready_o)
-  ,.valid_o    (rsp_piso_v_lo)
-  ,.data_o     (rsp_piso_data_lo)
-  ,.yumi_i     (rsp_piso_v_lo & rsp_piso_ready_li)
-  );
-
-  bsg_fifo_1r1w_small
- #(.width_p(axil_data_width_p)
-  ,.els_p  (ratio_lp*tx_read_credits_gp)
-  ) rsp_buf
-  (.clk_i  (clk_i)
-  ,.reset_i(reset_i)
-  ,.v_i    (rsp_piso_v_lo)
-  ,.data_i (rsp_piso_data_lo)
-  ,.ready_o(rsp_piso_ready_li)
-  ,.v_o    (axil_rsp_v_o)
-  ,.data_o (axil_rsp_o)
-  ,.yumi_i (axil_rsp_v_o & axil_rsp_ready_i)
+  ,.valid_i    (rsp_piso_v_li)
+  ,.data_i     (rsp_piso_data_li)
+  ,.ready_and_o(rsp_piso_ready_lo)
+  ,.valid_o    (axil_rsp_v_o)
+  ,.data_o     (axil_rsp_o)
+  ,.yumi_i     (axil_rsp_ready_i)
   );
 
   // --------------------------------------------------------
@@ -165,7 +165,7 @@ module bsg_manycore_link_to_axil_tx
   ,.reset_i     (reset_i)
   ,.v_i         (is_read_req & req_sipo_v_lo)
   ,.ready_i     (req_sipo_ready_li)
-  ,.yumi_i      (fifo_rsp_v_i & fifo_rsp_ready_o)
+  ,.yumi_i      (rsp_piso_v_li & rsp_piso_ready_lo)
   ,.count_o     (read_credits_lo)
   );
 
