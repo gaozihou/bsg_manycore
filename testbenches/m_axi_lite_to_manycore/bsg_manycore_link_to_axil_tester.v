@@ -12,10 +12,10 @@ module bsg_manycore_link_to_axil_tester
   ,input  pcie_en_i
 
   ,output logic                        io_axi_lite_awvalid
-  ,output [ axil_addr_width_p-1:0]     io_axi_lite_awaddr
+  ,output logic [ axil_addr_width_p-1:0] io_axi_lite_awaddr
   ,input                               io_axi_lite_awready
   ,output logic                        io_axi_lite_wvalid
-  ,output [ axil_data_width_p-1:0]     io_axi_lite_wdata
+  ,output logic [ axil_data_width_p-1:0] io_axi_lite_wdata
   ,output [(axil_data_width_p>>3)-1:0] io_axi_lite_wstrb
   ,input                               io_axi_lite_wready
   ,input  [ 1:0]                       io_axi_lite_bresp
@@ -38,6 +38,9 @@ module bsg_manycore_link_to_axil_tester
 
   typedef enum logic [3:0] {
     RESET
+   ,REMOTE_LOAD
+   ,AR_REMOTE_LOAD
+   ,R_REMOTE_LOAD
    ,LOAD_NBF
    ,AR_OCCUPACY
    ,R_OCCUPACY
@@ -54,8 +57,6 @@ module bsg_manycore_link_to_axil_tester
   bsg_nbf_s curr_nbf;
   assign curr_nbf = nbf[nbf_addr_r];
 
-  assign io_axi_lite_awaddr = curr_nbf.addr;
-  assign io_axi_lite_wdata  = curr_nbf.data;
   assign io_axi_lite_wstrb  = '1;
   assign io_axi_lite_bready = 1'b1;
   assign io_axi_lite_rready = 1'b1;
@@ -67,6 +68,8 @@ module bsg_manycore_link_to_axil_tester
   wire is_read   = (curr_nbf.opcode == 4'h0);
   wire is_write  = (curr_nbf.opcode == 4'h1);
   wire is_finish = (curr_nbf.opcode == 4'hF);
+
+  wire [3:0][31:0] remote_load_buf = {{32'h00000040},{32'h02a90000},{32'h00000004},{32'h00100810}};
  
   always_comb
   begin
@@ -78,11 +81,49 @@ module bsg_manycore_link_to_axil_tester
     io_axi_lite_awvalid = 1'b0;
     io_axi_lite_wvalid  = 1'b0;
     io_axi_lite_araddr  = curr_nbf.addr;
+    io_axi_lite_awaddr  = curr_nbf.addr;
+    io_axi_lite_wdata   = curr_nbf.data;
     if (nbf_state_r == RESET)
       begin
         if (pcie_en_i)
           begin
-            nbf_state_n = AR_OCCUPACY;
+            nbf_state_n = REMOTE_LOAD;
+          end
+      end
+    else if (nbf_state_r == REMOTE_LOAD)
+      begin
+        io_axi_lite_awvalid = 1'b1;
+        io_axi_lite_wvalid = 1'b1;
+        io_axi_lite_awaddr = 16'h1004;
+        io_axi_lite_wdata  = remote_load_buf[nbf_counter_r];
+        if (io_axi_lite_awready & io_axi_lite_wready)
+          begin
+            nbf_counter_n = nbf_counter_r + 1;
+            if (nbf_counter_r == 3)
+              begin
+                nbf_counter_n = '0;
+                nbf_state_n = AR_REMOTE_LOAD;
+              end
+          end
+      end
+    else if (nbf_state_r == AR_REMOTE_LOAD)
+      begin
+        io_axi_lite_arvalid = 1'b1;
+        io_axi_lite_araddr  = 16'h100C;
+        if (io_axi_lite_arready)
+            nbf_state_n = R_REMOTE_LOAD;
+      end
+    else if (nbf_state_r == R_REMOTE_LOAD)
+      begin
+        if (io_axi_lite_rvalid)
+          begin
+            nbf_counter_n = nbf_counter_r + 1;
+            nbf_state_n = AR_REMOTE_LOAD;
+            if (nbf_counter_r == 3)
+              begin
+                nbf_counter_n = '0;
+                nbf_state_n = AR_OCCUPACY;
+              end
           end
       end
     else if (nbf_state_r == LOAD_NBF)
