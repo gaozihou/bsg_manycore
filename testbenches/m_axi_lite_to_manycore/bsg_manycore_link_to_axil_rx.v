@@ -63,7 +63,7 @@ module bsg_manycore_link_to_axil_rx
 
   bsg_flow_counter
  #(.els_p       (ratio_lp*rx_req_credits_gp)
-  ,.count_free_p(1)
+  ,.count_free_p(0)
   ) req_cnt
   (.clk_i       (clk_i)
   ,.reset_i     (reset_i)
