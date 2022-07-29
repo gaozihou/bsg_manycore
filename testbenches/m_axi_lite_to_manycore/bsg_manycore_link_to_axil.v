@@ -147,7 +147,7 @@ module bsg_manycore_link_to_axil
   logic                          tx_axil_req_v_li;
   logic                          tx_axil_req_ready_lo;
 
-  wire is_write_to_tdr = (awaddr_li == mcl_fifo_base_addr_gp + mcl_ofs_tdr_gp);
+  wire is_write_tx_req = (awaddr_li == mcl_fifo_base_addr_gp + mcl_ofs_tx_req_gp);
 
   assign wyumi_lo  = awyumi_lo;
   assign bvalid_lo = awyumi_lo;
@@ -159,7 +159,7 @@ module bsg_manycore_link_to_axil
    tx_axil_req_li = '0;
    if (awvalid_li & wvalid_li & bready_li)
      begin
-       if (is_write_to_tdr)
+       if (is_write_tx_req)
          begin
            tx_axil_req_v_li = 1'b1;
            awyumi_lo = tx_axil_req_ready_lo;
@@ -240,14 +240,14 @@ module bsg_manycore_link_to_axil
   logic [axil_addr_width_p-1:0]            rx_rom_addr_li;
   logic [axil_data_width_p-1:0]            rx_rom_data_lo;
 
-  wire is_read_counter_low   = (araddr_li == mcl_ofs_counter_low_gp);
-  wire is_read_counter_high  = (araddr_li == mcl_ofs_counter_high_gp);
-  wire is_read_credit        = (araddr_li == mcl_ofs_credits_gp);
-  wire is_read_rdr_rsp       = (araddr_li == mcl_fifo_base_addr_gp + mcl_ofs_rdr_rsp_gp);
-  wire is_read_tdfv_host_req = (araddr_li == mcl_fifo_base_addr_gp + mcl_ofs_tdfv_req_gp);
-  wire is_read_rdfo_mc_req   = (araddr_li == mcl_fifo_base_addr_gp + mcl_ofs_rdfo_req_gp);
-  wire is_read_rdr_req       = (araddr_li == mcl_fifo_base_addr_gp + mcl_ofs_rdr_req_gp);
-  wire is_read_rom           = (araddr_li >= mcl_rom_base_addr_gp) &&
+  wire is_read_counter_low    = (araddr_li == mcl_ofs_counter_low_gp);
+  wire is_read_counter_high   = (araddr_li == mcl_ofs_counter_high_gp);
+  wire is_read_credit         = (araddr_li == mcl_ofs_credits_gp);
+  wire is_read_tx_rsp         = (araddr_li == mcl_fifo_base_addr_gp + mcl_ofs_tx_rsp_gp);
+  wire is_read_tx_req_credits = (araddr_li == mcl_fifo_base_addr_gp + mcl_ofs_tx_req_credits_gp);
+  wire is_read_rx_req_credits = (araddr_li == mcl_fifo_base_addr_gp + mcl_ofs_rx_req_credits_gp);
+  wire is_read_rx_req         = (araddr_li == mcl_fifo_base_addr_gp + mcl_ofs_rx_req_gp);
+  wire is_read_rom            = (araddr_li >= mcl_rom_base_addr_gp) &&
        (araddr_li < mcl_rom_base_addr_gp + (1<<$clog2(bsg_machine_rom_els_gp*bsg_machine_rom_width_gp/8)));
 
   assign rvalid_lo = aryumi_lo;
@@ -266,23 +266,23 @@ module bsg_manycore_link_to_axil
             aryumi_lo = 1'b1;
             rdata_lo = axil_data_width_p'(ep_out_credits_used_lo);
           end
-        else if (is_read_rdr_rsp)
+        else if (is_read_tx_rsp)
           begin  // accept the read address only when fifo data is valid
             tx_axil_rsp_ready_li = 1'b1;
             aryumi_lo = tx_axil_rsp_v_lo;
             rdata_lo = tx_axil_rsp_lo;
           end
-        else if (is_read_tdfv_host_req)
+        else if (is_read_tx_req_credits)
           begin  // always accept and return the vacancy of host req fifo in words
             aryumi_lo = 1'b1;
             rdata_lo = axil_data_width_p'(tx_req_credits_lo);
           end
-        else if (is_read_rdfo_mc_req)
+        else if (is_read_rx_req_credits)
           begin  // always accept and return the occupancy of rx words
             aryumi_lo = 1'b1;
             rdata_lo = axil_data_width_p'(rx_req_credits_lo);
           end
-        else if (is_read_rdr_req)
+        else if (is_read_rx_req)
           begin  // accept the read address only when fifo data is valid
             rx_axil_req_ready_li = 1'b1;
             aryumi_lo = rx_axil_req_v_lo;
