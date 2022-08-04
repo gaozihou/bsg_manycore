@@ -272,6 +272,73 @@ module bsg_nonsynth_manycore_testbench
     end
   end
 
+
+
+  bsg_manycore_link_sif_s io_link_sif_li, io_link_sif_lo;
+  bsg_manycore_link_sif_s [S:P] hor_rtr_link_sif_li, hor_rtr_link_sif_lo;
+  bsg_manycore_ruche_x_link_sif_s [E:W] hor_rtr_ruche_link_li, hor_rtr_ruche_link_lo;
+
+  // tx
+  assign hor_rtr_link_sif_li[P].fwd.v    = io_link_sif_li.fwd.v;
+  assign hor_rtr_link_sif_li[P].fwd.data = io_link_sif_li.fwd.data;
+  assign io_link_sif_lo.fwd.ready_and_rev  = hor_rtr_link_sif_lo[P].fwd.ready_and_rev;
+
+  assign io_link_sif_lo.rev.v    = hor_rtr_link_sif_lo[P].rev.v;
+  assign io_link_sif_lo.rev.data = hor_rtr_link_sif_lo[P].rev.data;
+  assign hor_rtr_link_sif_li[P].rev.ready_and_rev = io_link_sif_li.rev.ready_and_rev;
+
+  assign hor_rtr_link_sif_li[P].fwd.ready_and_rev = 1'b1;
+  assign hor_rtr_link_sif_li[P].rev.v             = 1'b0;
+  assign hor_rtr_link_sif_li[P].rev.data          = '0;
+
+  // rx
+  assign io_link_sif_lo.fwd.v    = ver_link_sif_lo[N][15].fwd.v;
+  assign io_link_sif_lo.fwd.data = ver_link_sif_lo[N][15].fwd.data;
+  assign ver_link_sif_li[N][15].fwd.ready_and_rev = io_link_sif_li.fwd.ready_and_rev;
+
+  assign ver_link_sif_li[N][15].rev.v     = io_link_sif_li.rev.v;
+  assign ver_link_sif_li[N][15].rev.data  = io_link_sif_li.rev.data;
+  assign io_link_sif_lo.rev.ready_and_rev = ver_link_sif_lo[N][15].rev.ready_and_rev;
+
+  assign ver_link_sif_li[N][15].rev.ready_and_rev = 1'b1;
+  assign ver_link_sif_li[N][15].fwd.v             = 1'b0;
+  assign ver_link_sif_li[N][15].fwd.data          = '0;
+
+
+  bsg_manycore_hor_io_router
+ #(.addr_width_p    (addr_width_p)
+  ,.data_width_p    (data_width_p)
+  ,.x_cord_width_p  (x_cord_width_p)
+  ,.y_cord_width_p  (y_cord_width_p)
+  ,.ruche_factor_X_p(ruche_factor_X_p)
+  ,.tieoff_west_p   (1)
+  ,.tieoff_east_p   (0)
+  ) io_rtr
+  (.clk_i           (clk_i)
+  ,.reset_i         (reset_r)
+
+  ,.link_sif_i      (hor_rtr_link_sif_li[S:W])
+  ,.link_sif_o      (hor_rtr_link_sif_lo[S:W])
+
+  ,.proc_link_sif_i (hor_rtr_link_sif_li[P])
+  ,.proc_link_sif_o (hor_rtr_link_sif_lo[P])
+
+  ,.ruche_link_i    (hor_rtr_ruche_link_li)
+  ,.ruche_link_o    (hor_rtr_ruche_link_lo)
+
+  ,.global_x_i      ((x_cord_width_p)'(15))
+  ,.global_y_i      ((y_cord_width_p)'(8))
+  );
+
+  assign hor_rtr_ruche_link_li[E] = ~ruche_link_lo[W][0][0]; // invert
+  assign ruche_link_li[W][0][0]   = hor_rtr_ruche_link_lo[E];
+
+  assign hor_rtr_link_sif_li[E]   = hor_link_sif_lo[W][0][0];
+  assign hor_link_sif_li[W][0][0] = hor_rtr_link_sif_lo[E];
+
+  assign hor_rtr_link_sif_li[S:N] = '0;
+
+/*
   // IO ROUTER
   localparam rev_use_credits_lp = 5'b00000;
   localparam int rev_fifo_els_lp[4:0] = '{2,2,2,2,3};
@@ -311,7 +378,7 @@ module bsg_nonsynth_manycore_testbench
       assign io_link_sif_li[x+1][W] = io_link_sif_lo[x][E];
     end
   end
-
+*/
 
 
   // Host link connection
@@ -388,8 +455,8 @@ module bsg_nonsynth_manycore_testbench
     // manycore link
     ,.link_sif_i (io_pcie_link_sif_li)
     ,.link_sif_o (io_pcie_link_sif_lo)
-    ,.global_x_i          ((x_cord_width_p)'(host_x_cord_p)     )
-    ,.global_y_i          ((y_cord_width_p)'(host_y_cord_p)     )
+    ,.global_x_i          ((x_cord_width_p)'(15)     )
+    ,.global_y_i          ((y_cord_width_p)'(8)     )
     ,.cycle_ctr_i       (core_cycle_ctr_lo)
   );
 
@@ -406,8 +473,8 @@ module bsg_nonsynth_manycore_testbench
   ,.L_link_sif_o   ( io_pcie_link_sif_li )
   ,.R_clk_i        ( clk_i )
   ,.R_reset_i      ( reset_r )
-  ,.R_link_sif_i   ( io_link_sif_lo[0][P] )
-  ,.R_link_sif_o   ( io_link_sif_li[0][P] )
+  ,.R_link_sif_i   ( io_link_sif_lo )
+  ,.R_link_sif_o   ( io_link_sif_li )
   );
 
 
@@ -657,7 +724,7 @@ module bsg_nonsynth_manycore_testbench
   ////      TIE OFF           ////
   ////                        ////
 
-
+/*
   // IO P tie off
   for (genvar i = 1; i < num_pods_x_p*num_tiles_x_p; i++) begin
     bsg_manycore_link_sif_tieoff #(
@@ -698,10 +765,12 @@ module bsg_nonsynth_manycore_testbench
     ,.link_sif_i(io_link_sif_lo[(num_pods_x_p*num_tiles_x_p)-1][E])
     ,.link_sif_o(io_link_sif_li[(num_pods_x_p*num_tiles_x_p)-1][E])
   );
+*/
 
-
-  // SOUTH VER LINK TIE OFFS
+  // VER LINK TIE OFFS
   for (genvar i = 0; i < num_pods_x_p*num_tiles_x_p; i++) begin
+    for (genvar j = N; j <= S; j++) begin
+    if (!(i == 15 && j == N)) begin
     bsg_manycore_link_sif_tieoff #(
       .addr_width_p(addr_width_p)
       ,.data_width_p(data_width_p)
@@ -710,9 +779,11 @@ module bsg_nonsynth_manycore_testbench
     ) ver_s_tieoff (
       .clk_i(clk_i)
       ,.reset_i(reset_r)
-      ,.link_sif_i(ver_link_sif_lo[S][i])
-      ,.link_sif_o(ver_link_sif_li[S][i])
+      ,.link_sif_i(ver_link_sif_lo[j][i])
+      ,.link_sif_o(ver_link_sif_li[j][i])
     );
+    end
+    end
   end
 
 
@@ -720,6 +791,7 @@ module bsg_nonsynth_manycore_testbench
   for (genvar i = W; i <= E; i++) begin
     for (genvar j = 0; j < num_pods_y_p; j++) begin
       for (genvar k = 0; k < num_tiles_y_p; k++) begin
+        if (!(i == W && j == 0 && k == 0)) begin
         bsg_manycore_link_sif_tieoff #(
           .addr_width_p(addr_width_p)
           ,.data_width_p(data_width_p)
@@ -731,6 +803,7 @@ module bsg_nonsynth_manycore_testbench
           ,.link_sif_i(hor_link_sif_lo[i][j][k])
           ,.link_sif_o(hor_link_sif_li[i][j][k])
         );
+        end
       end
     end
   end
@@ -740,7 +813,9 @@ module bsg_nonsynth_manycore_testbench
   for (genvar j = 0; j < num_pods_y_p; j++) begin
     for (genvar k = 0; k < num_tiles_y_p; k++) begin
       // hard coded for ruche factor 3
+      if (!(j == 0 && k == 0)) begin
       assign ruche_link_li[W][j][k] = '0;
+      end
     end
   end
 
