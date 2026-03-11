@@ -151,32 +151,32 @@ class NBFBlackParrot(NBF):
     self.init_bp_dram(dram_data, pod_origin_x, pod_origin_y)
     self.fence()
 
-    # initialize all pods
-    for px in range(self.num_pods_x):
-      for py in range(self.num_pods_y):
-        pod_origin_x = self.origin_x_cord + (px*self.num_tiles_x)
-        pod_origin_y = self.origin_y_cord + (py*2*self.num_tiles_y)
-        self.config_tile_group(pod_origin_x, pod_origin_y)
-        self.init_icache(pod_origin_x, pod_origin_y)
-        self.init_dmem(pod_origin_x, pod_origin_y)
-        self.set_pc_init_val(pod_origin_x, pod_origin_y)
-        self.init_vcache_wh_dest(pod_origin_x, pod_origin_y, px)
-
-        if self.enable_dram != 1:
-          self.disable_dram(pod_origin_x, pod_origin_y)
-          self.init_vcache(pod_origin_x, pod_origin_y)
-
-        self.init_dram(pod_origin_x, pod_origin_y)
-
-    # wait for all store credits to return.
-    self.fence()
-
-    # unfreeze all pods
-    for px in range(self.num_pods_x):
-      for py in range(self.num_pods_y):
-        pod_origin_x = self.origin_x_cord + (px*self.num_tiles_x)
-        pod_origin_y = self.origin_y_cord + (py*2*self.num_tiles_y)
-        self.unfreeze_tiles(pod_origin_x, pod_origin_y)
+#    # initialize all pods
+#    for px in range(self.num_pods_x):
+#      for py in range(self.num_pods_y):
+#        pod_origin_x = self.origin_x_cord + (px*self.num_tiles_x)
+#        pod_origin_y = self.origin_y_cord + (py*2*self.num_tiles_y)
+#        self.config_tile_group(pod_origin_x, pod_origin_y)
+#        self.init_icache(pod_origin_x, pod_origin_y)
+#        self.init_dmem(pod_origin_x, pod_origin_y)
+#        self.set_pc_init_val(pod_origin_x, pod_origin_y)
+#        self.init_vcache_wh_dest(pod_origin_x, pod_origin_y, px)
+#
+#        if self.enable_dram != 1:
+#          self.disable_dram(pod_origin_x, pod_origin_y)
+#          self.init_vcache(pod_origin_x, pod_origin_y)
+#
+#        self.init_dram(pod_origin_x, pod_origin_y)
+#
+#    # wait for all store credits to return.
+#    self.fence()
+#
+#    # unfreeze all pods
+#    for px in range(self.num_pods_x):
+#      for py in range(self.num_pods_y):
+#        pod_origin_x = self.origin_x_cord + (px*self.num_tiles_x)
+#        pod_origin_y = self.origin_y_cord + (py*2*self.num_tiles_y)
+#        self.unfreeze_tiles(pod_origin_x, pod_origin_y)
 
     # Unfreeze BlackParrot
     self.print_nbf(bp_x_coord, bp_y_coord, cfg_base_addr + cfg_reg_freeze, 0)

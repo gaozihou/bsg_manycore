@@ -20,8 +20,8 @@ RISCV64_GCC_OPTS = -march=rv64imafd -mabi=lp64 -mcmodel=medany -I$(CURR_DIR) -T$
 
 all: main.run
 
-prog.riscv64:
-	$(RISCV64_GCC) -o $@ $(BLACKPARROT_SRC_FILES) $(RISCV64_GCC_OPTS)
+#prog.riscv64:
+#	$(RISCV64_GCC) -o $@ $(BLACKPARROT_SRC_FILES) $(RISCV64_GCC_OPTS)
 
 prog.dis: prog.riscv64
 	$(RISCV64_OBJDUMP) $^
@@ -36,7 +36,7 @@ main.o: Makefile
 
 clean.bp_manycore:
 	rm -f *.mem
-	rm -f *.riscv64
+#	rm -f *.riscv64
 
 clean: clean.bp_manycore
 
