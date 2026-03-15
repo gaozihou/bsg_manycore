@@ -48,115 +48,63 @@ void main() {
   ***********************/
   *hio_mask_addr = 0xFFF;
 
-  /*******************************************
-   Create 2 8x4 matrices and compute their sum
-  ********************************************/
-  uint32_t matrix0[BSG_TOTAL_TILES][NUM_ELEMENTS], matrix1[BSG_TOTAL_TILES][NUM_ELEMENTS], matrix2[BSG_TOTAL_TILES][NUM_ELEMENTS];
-  for (uint32_t i = 0; i < BSG_TOTAL_TILES; i++) {
-    for (uint32_t j = 0; j < NUM_ELEMENTS; j++) {
-      matrix0[i][j] = j + i;
-      matrix1[i][j] = j - i;
-      matrix2[i][j] = matrix0[i][j] + matrix1[i][j];
-    }
-  }
 
-  /*********************************************
-   Send the input matrices to the correct tiles
-   | 0 | 1 |
-   | 2 | 3 |
-  *********************************************/
-  uint32_t *some_host_addr = (uint32_t *) (mc_tile_mmio | mc_host_y_coord | mc_host_x_coord | 0x8);
-  uint32_t *tile_addr0;
-  uint32_t *tile_addr1;
-  uint64_t y_coord, x_coord, epa0, epa1;
-  for (int i = 0; i < BSG_TOTAL_TILES; i++) {
-    for(int j = 0; j < NUM_ELEMENTS; j++) {
-      epa0 = (j + 2) << 2;
-      epa1 = (j + 2 + NUM_ELEMENTS) << 2;
-      x_coord = ((1 << HB_MC_POD_X_SUBCOORD_WIDTH) | (i % BSG_TILES_X)) << (2 + HB_MC_TILE_EPA_WIDTH);
-      y_coord = ((1 << HB_MC_POD_Y_SUBCOORD_WIDTH) | (i / BSG_TILES_X)) << (2 + HB_MC_TILE_EPA_WIDTH + HB_MC_X_COORD_WIDTH);
-      tile_addr0 = (uint32_t *) (mc_tile_mmio | y_coord | x_coord | epa0);
-      tile_addr1 = (uint32_t *) (mc_tile_mmio | y_coord | x_coord | epa1);
-      *tile_addr0 = matrix0[i][j];
-      *tile_addr1 = matrix1[i][j];
-    }
-  }
 
-  // Show some signs of life
-  char str0[] = "BP>>Hey there! I am BlackParrot!\nBP>>Manycore, Let's do matrix-matrix add!\n";
-  for(int c = 0; str0[c] != '\0'; c++) {
-    *mc_stdout_addr = str0[c];
-  }
-
-  /*********************************************
-   Indicate that the tiles can start computation
-  *********************************************/
-  for (int i = 0; i < BSG_TOTAL_TILES; i++) {
-    epa0 = 0x0 << 2;
-    x_coord = ((1 << HB_MC_POD_X_SUBCOORD_WIDTH) | (i % BSG_TILES_X)) << (2 + HB_MC_TILE_EPA_WIDTH);
-    y_coord = ((1 << HB_MC_POD_Y_SUBCOORD_WIDTH) | (i / BSG_TILES_X)) << (2 + HB_MC_TILE_EPA_WIDTH + HB_MC_X_COORD_WIDTH);
-    tile_addr0 = (uint32_t *) (mc_tile_mmio | y_coord | x_coord | epa0);
-    *tile_addr0 = NUM_ELEMENTS;
-  }
-
-  /*********************************************
-   Wait for an interrupt
-  *********************************************/
-  // Dan: Use a loop since wfi is not guaranteed
-  // to break randomly
-  do {
-    __asm__ __volatile__ ("wfi"::);
-  } while (interrupt_taken == 0);
-
-  // Show some signs of life
-  char str1[] = "BP>>I am awake!\n";
+  char str1[] = "Cache flush invalidate starts\n";
   for(int c = 0; str1[c] != '\0'; c++) {
     *mc_stdout_addr = str1[c];
   }
 
-  /*********************************************
-   Check if the manycore executed correctly
-   using FIFO interface
-  *********************************************/
-  hb_mc_packet_t req_pkt, resp_pkt;
+  __asm__ __volatile__ ("fence rw, rw");
 
-  req_pkt.request.op_v2 = 0;
-  req_pkt.request.reg_id = 0xf;
+  hb_mc_packet_t req_pkt;
   req_pkt.request.data = 0x0;
-  req_pkt.request.x_src = (0 << HB_MC_POD_X_SUBCOORD_WIDTH) | 15;
-  req_pkt.request.y_src = (1 << HB_MC_POD_Y_SUBCOORD_WIDTH) | 1;
-  for (int i = 0; i < BSG_TOTAL_TILES; i++) {
-    for (int j = 0; j < NUM_ELEMENTS; j++) {
-      req_pkt.request.x_dst = ((1 << HB_MC_POD_X_SUBCOORD_WIDTH) | (i % BSG_TILES_X));
-      req_pkt.request.y_dst = ((1 << HB_MC_POD_Y_SUBCOORD_WIDTH) | (i / BSG_TILES_X));
-      req_pkt.request.addr = (j + 2 + 2*NUM_ELEMENTS) << 2;
-
-      // Wait for credits
-      while ((HB_MC_IO_MAX_EP_CREDITS - *mc_link_bp_req_credits_addr) == 0);
-
-      // Write the packet to the manycore bridge
-      for (int k = 0; k < 4; k++)
-        *mc_link_bp_req_fifo_addr = req_pkt.words[k];
-      
-      // Wait for response
-      while(*mc_link_bp_resp_entries_addr == 0);
-
-      // Read the response
-      for (int k = 0; k < 4; k++)
-        resp_pkt.words[k] = *mc_link_bp_resp_fifo_addr;
-
-      // Check for correctness
-      if (matrix2[i][j] != resp_pkt.response.data) {
-        *mc_fail_addr = i + j;
-      }
-    }
+  hb_mc_packet_t req_dst_array[32];
+  for (int j = 0; j < 32; j++) {
+    req_dst_array[j].request.x_dst = ((1 << HB_MC_POD_X_SUBCOORD_WIDTH) | (j % 16));
+    req_dst_array[j].request.y_dst = (((j < 16 ? 0 : 2) << HB_MC_POD_Y_SUBCOORD_WIDTH) | (j < 16 ? 7 : 0));
+    req_dst_array[j].request.x_src = (0 << HB_MC_POD_X_SUBCOORD_WIDTH) | 15;
+    req_dst_array[j].request.y_src = (1 << HB_MC_POD_Y_SUBCOORD_WIDTH) | 1;
   }
 
-  // Show some signs of life
-  char str2[] = "BP>>Successfully completed matrix-matrix add!\nBP>>Bye!\n";
+for (int iter = 0; iter < 1; iter++) {
+  req_pkt.request.op_v2 = 0x3;
+  req_pkt.request.reg_id = 0x3;
+  for (int i = 0; i < 64*4; i++) {
+    req_pkt.request.addr = (1 << 31) | (1 << 29) | ((i << 3) << 2);
+    #pragma GCC unroll 32
+    for (int j = 0; j < 32; j++) {
+      *mc_link_bp_req_fifo_addr = req_dst_array[j].words[0];
+      *mc_link_bp_req_fifo_addr = req_pkt.words[1];
+      *mc_link_bp_req_fifo_addr = req_pkt.words[2];
+      *mc_link_bp_req_fifo_addr = req_pkt.words[3];
+      __asm__ __volatile__ ("nop");
+    }
+  }
+  req_pkt.request.op_v2 = 0x2;
+  req_pkt.request.reg_id = 0xF;
+  for (int i = 0; i < 64*4; i++) {
+    req_pkt.request.addr = (1 << 31) | (1 << 29) | ((i << 3) << 2);
+    #pragma GCC unroll 32
+    for (int j = 0; j < 32; j++) {
+      *mc_link_bp_req_fifo_addr = req_dst_array[j].words[0];
+      *mc_link_bp_req_fifo_addr = req_pkt.words[1];
+      *mc_link_bp_req_fifo_addr = req_pkt.words[2];
+      *mc_link_bp_req_fifo_addr = req_pkt.words[3];
+      __asm__ __volatile__ ("nop");
+    }
+  }
+}
+
+  __asm__ __volatile__ ("fence rw, rw");
+  while ((*mc_link_bp_req_credits_addr) != 0);
+
+  char str2[] = "Cache flush invalidate ends\n";
   for(int c = 0; str2[c] != '\0'; c++) {
     *mc_stdout_addr = str2[c];
   }
+
+
 
   // Terminate the simulation
   *mc_finish_addr = 0;
