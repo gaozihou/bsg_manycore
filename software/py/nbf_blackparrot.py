@@ -65,10 +65,10 @@ class NBFBlackParrot(NBF):
   ########################## BP CONFIG FUNCTIONS ##########################
 
   # Initialize BlackParrot specific registers
-  def init_bp_config(self):
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 1, cfg_base_addr + cfg_reg_hio_mask, 1)
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 1, cfg_base_addr + cfg_reg_icache_mode, 1)
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 1, cfg_base_addr + cfg_reg_dcache_mode, 1)
+  def init_bp_config(self, bp_x_coord, bp_y_coord, bp_dram_pod_offset):
+    self.print_nbf(bp_x_coord, bp_y_coord, cfg_base_addr + cfg_reg_hio_mask, 1)
+    self.print_nbf(bp_x_coord, bp_y_coord, cfg_base_addr + cfg_reg_icache_mode, 1)
+    self.print_nbf(bp_x_coord, bp_y_coord, cfg_base_addr + cfg_reg_dcache_mode, 1)
 
     # The next few requests send acknowledgments immediately
     # So get back all credits for previous requests before sending these out
@@ -76,15 +76,15 @@ class NBFBlackParrot(NBF):
     self.fence()
 
     # Write to the DRAM offset registers in all the bridge modules
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 1, dram_offset_base_addr + dram_base_addr_reg, self.mc_dram_base)
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 2, dram_offset_base_addr + dram_base_addr_reg, self.mc_dram_base)
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 3, dram_offset_base_addr + dram_base_addr_reg, self.mc_dram_base)
+    self.print_nbf(bp_x_coord, bp_y_coord+0, dram_offset_base_addr + dram_base_addr_reg, self.mc_dram_base)
+    self.print_nbf(bp_x_coord, bp_y_coord+1, dram_offset_base_addr + dram_base_addr_reg, self.mc_dram_base)
+    self.print_nbf(bp_x_coord, bp_y_coord+2, dram_offset_base_addr + dram_base_addr_reg, self.mc_dram_base)
 
     self.fence()
 
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 1, dram_offset_base_addr + dram_pod_offset_reg, self.mc_dram_pod_offset)
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 2, dram_offset_base_addr + dram_pod_offset_reg, self.mc_dram_pod_offset)
-    self.print_nbf((0 << 4) | 15, (1 << 3) | 3, dram_offset_base_addr + dram_pod_offset_reg, self.mc_dram_pod_offset)
+    self.print_nbf(bp_x_coord, bp_y_coord+0, dram_offset_base_addr + dram_pod_offset_reg, bp_dram_pod_offset)
+    self.print_nbf(bp_x_coord, bp_y_coord+1, dram_offset_base_addr + dram_pod_offset_reg, bp_dram_pod_offset)
+    self.print_nbf(bp_x_coord, bp_y_coord+2, dram_offset_base_addr + dram_pod_offset_reg, bp_dram_pod_offset)
 
   def init_bp_dram(self, dram_data, pod_origin_x, pod_origin_y):
     cache_size = self.cache_size
@@ -136,19 +136,24 @@ class NBFBlackParrot(NBF):
   # users only have to call this function.
   def dump(self):
     # Fixme: Initializes only 1 BlackParrot at (x, y) = (15, 9)
-    bp_x_coord = (0 << 4) | 15
-    bp_y_coord = (1 << 3) | 1
-    self.print_nbf(bp_x_coord, bp_y_coord, cfg_base_addr + cfg_reg_freeze, 1)
+    self.print_nbf((0 << 4) | 15, (1 << 3) | 1, cfg_base_addr + cfg_reg_freeze, 1)
+    self.print_nbf((0 << 4) | 15, (1 << 3) | 5, cfg_base_addr + cfg_reg_freeze, 1)
+    self.print_nbf((0 << 4) | 15, (3 << 3) | 1, cfg_base_addr + cfg_reg_freeze, 1)
+    self.print_nbf((0 << 4) | 15, (3 << 3) | 5, cfg_base_addr + cfg_reg_freeze, 1)
 
     # Initialize the BlackParrot config registers
-    self.init_bp_config()
+    self.init_bp_config((0 << 4) | 15, (1 << 3) | 1, 0b0001001)
+    self.init_bp_config((0 << 4) | 15, (1 << 3) | 5, 0b0001010)
+    self.init_bp_config((0 << 4) | 15, (3 << 3) | 1, 0b0011001)
+    self.init_bp_config((0 << 4) | 15, (3 << 3) | 5, 0b0011010)
     self.fence()
 
     dram_data = self.get_bp_dram_data()
     # Fixme: Initializes the DRAM space for 1 BlackParrot in a single pod
-    pod_origin_x = self.origin_x_cord
-    pod_origin_y = self.origin_y_cord
-    self.init_bp_dram(dram_data, pod_origin_x, pod_origin_y)
+    self.init_bp_dram(dram_data, (1 << 4) | 0, (1 << 3) | 0)
+    self.init_bp_dram(dram_data, (2 << 4) | 0, (1 << 3) | 0)
+    self.init_bp_dram(dram_data, (1 << 4) | 0, (3 << 3) | 0)
+    self.init_bp_dram(dram_data, (2 << 4) | 0, (3 << 3) | 0)
     self.fence()
 
 #    # initialize all pods
@@ -179,7 +184,10 @@ class NBFBlackParrot(NBF):
 #        self.unfreeze_tiles(pod_origin_x, pod_origin_y)
 
     # Unfreeze BlackParrot
-    self.print_nbf(bp_x_coord, bp_y_coord, cfg_base_addr + cfg_reg_freeze, 0)
+    self.print_nbf((0 << 4) | 15, (1 << 3) | 1, cfg_base_addr + cfg_reg_freeze, 0)
+    self.print_nbf((0 << 4) | 15, (1 << 3) | 5, cfg_base_addr + cfg_reg_freeze, 0)
+    self.print_nbf((0 << 4) | 15, (3 << 3) | 1, cfg_base_addr + cfg_reg_freeze, 0)
+    self.print_nbf((0 << 4) | 15, (3 << 3) | 5, cfg_base_addr + cfg_reg_freeze, 0)
 
     # print finish nbf.
     self.print_finish()

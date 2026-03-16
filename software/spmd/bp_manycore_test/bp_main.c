@@ -71,6 +71,8 @@ for (int p = 0; p < 4; p++) {
   req_pkt.request.x_dst = (1 << HB_MC_POD_X_SUBCOORD_WIDTH) | 15;
   req_pkt.request.y_dst = (0 << HB_MC_POD_Y_SUBCOORD_WIDTH) | 0;
 
+  int req_dst_init_done = 0;
+
 while (1) {
   //__asm__ __volatile__ ("fence rw, rw");
 
@@ -88,6 +90,17 @@ while (1) {
     __asm__ __volatile__ ("nop");
   }
   int pod_id = resp_pkt.response.data & 0xff;
+
+  if (req_dst_init_done == 0) {
+    req_dst_init_done = 1;
+    for (int p = 0; p < 4; p++) {
+      for (int j = 0; j < 32; j++) {
+        req_dst_array[p][j].request.y_src = resp_pkt.response.y_dst;
+      }
+    }
+    req_pkt.request.y_src = resp_pkt.response.y_dst;
+  }
+
   if (pod_id >= 17) {
       break;
   } else if (pod_id == 16) {
