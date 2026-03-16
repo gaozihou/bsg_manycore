@@ -18,6 +18,8 @@ uint8_t *mc_stdout_addr          = (uint8_t *) (mc_tile_mmio | mc_host_y_coord |
 uint8_t *mc_stderr_addr          = (uint8_t *) (mc_tile_mmio | mc_host_y_coord | mc_host_x_coord | (HB_MC_HOST_STDERR_EPA));
 uint8_t *mc_branch_trace_addr    = (uint8_t *) (mc_tile_mmio | mc_host_y_coord | mc_host_x_coord | (HB_MC_HOST_BRANCH_TRACE_EPA));
 uint8_t *mc_print_stat_addr      = (uint8_t *) (mc_tile_mmio | mc_host_y_coord | mc_host_x_coord | (HB_MC_HOST_PRINT_STAT_EPA));
+uint8_t *mc_read_sync_addr       = (uint8_t *) (mc_tile_mmio | mc_host_y_coord | mc_host_x_coord | (HB_MC_HOST_READ_SYNC_EPA));
+uint8_t *mc_write_sync_addr      = (uint8_t *) (mc_tile_mmio | mc_host_y_coord | mc_host_x_coord | (HB_MC_HOST_WRITE_SYNC_EPA));
 
 volatile uint64_t *mc_link_bp_req_fifo_addr     = (uint64_t *) (BRIDGE_CSR_BP_REQ_FIFO_ADDR     | mc_host_fifo);
 volatile uint64_t *mc_link_bp_req_credits_addr  = (uint64_t *) (BRIDGE_CSR_BP_REQ_CREDITS_ADDR  | mc_host_fifo);

@@ -18,10 +18,12 @@
 #define HB_MC_HOST_FINISH_EPA 0x2000
 #define HB_MC_HOST_TIME_EPA 0xead4
 #define HB_MC_HOST_FAIL_EPA 0xead8
-#define HB_MC_HOST_STDOUT_EPA 0x1000
+#define HB_MC_HOST_STDOUT_EPA 0xeadc
 #define HB_MC_HOST_STDERR_EPA 0xeae0
 #define HB_MC_HOST_BRANCH_TRACE_EPA 0xeae4
 #define HB_MC_HOST_PRINT_STAT_EPA 0xea0c
+#define HB_MC_HOST_READ_SYNC_EPA 0x0004
+#define HB_MC_HOST_WRITE_SYNC_EPA 0x1004
 
 // Bridge CSR memory map
 #define BRIDGE_CSR_BP_REQ_FIFO_ADDR 0x1000
@@ -54,6 +56,8 @@ extern uint8_t *mc_stdout_addr;
 extern uint8_t *mc_stderr_addr;
 extern uint8_t *mc_branch_trace_addr;
 extern uint8_t *mc_print_stat_addr;
+extern uint8_t *mc_read_sync_addr;
+extern uint8_t *mc_write_sync_addr;
 
 // Bridge CSR addresses
 extern volatile uint64_t *mc_link_bp_req_fifo_addr;
