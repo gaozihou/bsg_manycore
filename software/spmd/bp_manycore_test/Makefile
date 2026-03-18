@@ -16,7 +16,7 @@ RISCV64_OBJCOPY := $(BLACKPARROT_SDK_DIR)/install/bin/riscv64-unknown-elf-dramfs
 CURR_DIR = $(shell pwd)
 
 RISCV_GCC_OPTS += -fno-delete-null-pointer-checks
-RISCV64_GCC_OPTS = -march=rv64imafd -mabi=lp64 -mcmodel=medany -I$(CURR_DIR) -T$(BLACKPARROT_LINKER) -nostartfiles -Os
+RISCV64_GCC_OPTS = -march=rv64imafd -mabi=lp64 -mcmodel=medany -I$(CURR_DIR) -T$(BLACKPARROT_LINKER) -nostartfiles -O1
 
 all: main.run
 

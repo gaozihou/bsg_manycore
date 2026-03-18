@@ -127,7 +127,7 @@ while (1) {
       *mc_link_bp_req_fifo_addr = req_pkt.words[1];
       *mc_link_bp_req_fifo_addr = req_pkt.words[2];
       *mc_link_bp_req_fifo_addr = req_pkt.words[3];
-      __asm__ __volatile__ ("nop");
+      //__asm__ __volatile__ ("nop");
     }
   }
   req_pkt.request.op_v2 = 0x2;
@@ -141,7 +141,7 @@ while (1) {
       *mc_link_bp_req_fifo_addr = req_pkt.words[1];
       *mc_link_bp_req_fifo_addr = req_pkt.words[2];
       *mc_link_bp_req_fifo_addr = req_pkt.words[3];
-      __asm__ __volatile__ ("nop");
+      //__asm__ __volatile__ ("nop");
     }
   }
 
