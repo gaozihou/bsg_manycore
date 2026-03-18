@@ -116,17 +116,28 @@ while (1) {
   //}
   //__asm__ __volatile__ ("fence rw, rw");
 
+  uint32_t *req_addr = (uint32_t *) mc_link_bp_req_fifo_addr;
+  //asm volatile("" : : "r" (req_addr) : );
   req_pkt.request.op_v2 = 0x3;
   req_pkt.request.reg_id = 0x3;
   req_pkt.request.data = 0x0;
   for (int i = 0; i < 64*4; i++) {
     req_pkt.request.addr = (1 << 31) | (1 << 29) | ((i << 3) << 2);
+    uint32_t word_1 = req_pkt.words[1];
+    uint32_t word_2 = req_pkt.words[2];
+    uint32_t word_3 = req_pkt.words[3];
+    //asm volatile("" : : "r" (word_1) : );
+    //asm volatile("" : : "r" (word_2) : );
+    //asm volatile("" : : "r" (word_3) : );
     #pragma GCC unroll 32
     for (int j = 0; j < 32; j++) {
-      *mc_link_bp_req_fifo_addr = req_dst_array[p][j].words[0];
-      *mc_link_bp_req_fifo_addr = req_pkt.words[1];
-      *mc_link_bp_req_fifo_addr = req_pkt.words[2];
-      *mc_link_bp_req_fifo_addr = req_pkt.words[3];
+      asm("sd %[val], 0(%[addr])" : : [val] "r" (req_dst_array[p][j].words[0]), [addr] "r" (req_addr));
+      __asm__ __volatile__ ("nop");
+      asm("sd %[val], 0(%[addr])" : : [val] "r" (word_1), [addr] "r" (req_addr));
+      __asm__ __volatile__ ("nop");
+      asm("sd %[val], 0(%[addr])" : : [val] "r" (word_2), [addr] "r" (req_addr));
+      __asm__ __volatile__ ("nop");
+      asm("sd %[val], 0(%[addr])" : : [val] "r" (word_3), [addr] "r" (req_addr));
       //__asm__ __volatile__ ("nop");
     }
   }
@@ -135,12 +146,21 @@ while (1) {
   req_pkt.request.data = 0x0;
   for (int i = 0; i < 64*4; i++) {
     req_pkt.request.addr = (1 << 31) | (1 << 29) | ((i << 3) << 2);
+    uint32_t word_1 = req_pkt.words[1];
+    uint32_t word_2 = req_pkt.words[2];
+    uint32_t word_3 = req_pkt.words[3];
+    //asm volatile("" : : "r" (word_1) : );
+    //asm volatile("" : : "r" (word_2) : );
+    //asm volatile("" : : "r" (word_3) : );
     #pragma GCC unroll 32
     for (int j = 0; j < 32; j++) {
-      *mc_link_bp_req_fifo_addr = req_dst_array[p][j].words[0];
-      *mc_link_bp_req_fifo_addr = req_pkt.words[1];
-      *mc_link_bp_req_fifo_addr = req_pkt.words[2];
-      *mc_link_bp_req_fifo_addr = req_pkt.words[3];
+      asm("sd %[val], 0(%[addr])" : : [val] "r" (req_dst_array[p][j].words[0]), [addr] "r" (req_addr));
+      __asm__ __volatile__ ("nop");
+      asm("sd %[val], 0(%[addr])" : : [val] "r" (word_1), [addr] "r" (req_addr));
+      __asm__ __volatile__ ("nop");
+      asm("sd %[val], 0(%[addr])" : : [val] "r" (word_2), [addr] "r" (req_addr));
+      __asm__ __volatile__ ("nop");
+      asm("sd %[val], 0(%[addr])" : : [val] "r" (word_3), [addr] "r" (req_addr));
       //__asm__ __volatile__ ("nop");
     }
   }
