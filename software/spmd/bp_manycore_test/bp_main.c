@@ -89,7 +89,7 @@ while (1) {
     resp_pkt.words[k] = *mc_link_bp_resp_fifo_addr;
     __asm__ __volatile__ ("nop");
   }
-  int pod_id = resp_pkt.response.data & 0xff;
+  int pod_id_raw = resp_pkt.response.data & 0xff;
 
   if (req_dst_init_done == 0) {
     req_dst_init_done = 1;
@@ -101,12 +101,16 @@ while (1) {
     req_pkt.request.y_src = resp_pkt.response.y_dst;
   }
 
-  if (pod_id >= 17) {
+  if (pod_id_raw == 17) {
       break;
-  } else if (pod_id == 16) {
+  } else if (pod_id_raw == 16) {
       continue;
   }
+  int pod_id = (pod_id_raw % 16);
+  int pod_op = (pod_id_raw / 16);
   int p = pod_id / 4;
+  int do_flush      = (pod_op == 0) || (pod_op == 2);
+  int do_invalidate = (pod_op == 0) || (pod_op == 3);
 
   //__asm__ __volatile__ ("fence rw, rw");
   //for (int k = 0; k < 50000; k++) __asm__ __volatile__ ("nop");
@@ -118,6 +122,7 @@ while (1) {
 
   uint32_t *req_addr = (uint32_t *) mc_link_bp_req_fifo_addr;
   //asm volatile("" : : "r" (req_addr) : );
+  if (do_flush) {
   req_pkt.request.op_v2 = 0x3;
   req_pkt.request.reg_id = 0x3;
   req_pkt.request.data = 0x0;
@@ -141,6 +146,8 @@ while (1) {
       //__asm__ __volatile__ ("nop");
     }
   }
+  }
+  if (do_invalidate) {
   req_pkt.request.op_v2 = 0x2;
   req_pkt.request.reg_id = 0xF;
   req_pkt.request.data = 0x0;
@@ -164,14 +171,15 @@ while (1) {
       //__asm__ __volatile__ ("nop");
     }
   }
+  }
 
   //__asm__ __volatile__ ("fence rw, rw");
   //while ((*mc_link_bp_req_credits_addr) != 0);
 
-  //*mc_write_sync_addr = pod_id;
+  //*mc_write_sync_addr = pod_id_raw;
   req_pkt.request.op_v2 = 0x1;
   req_pkt.request.reg_id = 0x1;
-  req_pkt.request.data = (0xffffff00) | (pod_id & 0xff);
+  req_pkt.request.data = (0xffffff00) | (pod_id_raw & 0xff);
   req_pkt.request.addr = HB_MC_HOST_WRITE_SYNC_EPA;
   for (int k = 0; k < 4; k++) {
     *mc_link_bp_req_fifo_addr = req_pkt.words[k];
