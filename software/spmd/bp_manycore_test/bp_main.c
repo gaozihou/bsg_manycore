@@ -56,11 +56,13 @@ void main() {
   __asm__ __volatile__ ("fence rw, rw");
 
   hb_mc_packet_t req_pkt, resp_pkt;
-  hb_mc_packet_t req_dst_array[4][32];
-for (int p = 0; p < 4; p++) {
+  hb_mc_packet_t req_dst_array[8][32];
+for (int p = 0; p < 8; p++) {
+  int pod_x = (p % 4) + 1;
+  int pod_y = (p / 4) * 2 + 1;
   for (int j = 0; j < 32; j++) {
-    req_dst_array[p][j].request.x_dst = (((p + 1) << HB_MC_POD_X_SUBCOORD_WIDTH) | (j % 16));
-    req_dst_array[p][j].request.y_dst = (((j < 16 ? 0 : 2) << HB_MC_POD_Y_SUBCOORD_WIDTH) | (j < 16 ? 7 : 0));
+    req_dst_array[p][j].request.x_dst = (((pod_x) << HB_MC_POD_X_SUBCOORD_WIDTH) | (j % 16));
+    req_dst_array[p][j].request.y_dst = (((j < 16 ? (pod_y - 1) : (pod_y + 1)) << HB_MC_POD_Y_SUBCOORD_WIDTH) | (j < 16 ? 7 : 0));
     req_dst_array[p][j].request.x_src = (0 << HB_MC_POD_X_SUBCOORD_WIDTH) | 15;
     req_dst_array[p][j].request.y_src = (1 << HB_MC_POD_Y_SUBCOORD_WIDTH) | 1;
   }
@@ -93,7 +95,7 @@ while (1) {
 
   if (req_dst_init_done == 0) {
     req_dst_init_done = 1;
-    for (int p = 0; p < 4; p++) {
+    for (int p = 0; p < 8; p++) {
       for (int j = 0; j < 32; j++) {
         req_dst_array[p][j].request.y_src = resp_pkt.response.y_dst;
       }
@@ -108,7 +110,7 @@ while (1) {
   }
   int pod_id = (pod_id_raw % 16);
   int pod_op = (pod_id_raw / 16);
-  int p = pod_id / 4;
+  int p = (pod_id % 2) * 4 + (pod_id / 4);
   int do_flush      = (pod_op == 0) || (pod_op == 2);
   int do_invalidate = (pod_op == 0) || (pod_op == 3);
 
